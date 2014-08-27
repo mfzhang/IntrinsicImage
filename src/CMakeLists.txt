@@ -1,9 +1,5 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
 FIND_PACKAGE( OpenCV REQUIRED )
-
-INCLUDE_DIRECTORIES(../include)
-INCLUDE_DIRECTORIES(../include/intrinsic)
-INCLUDE_DIRECTORIES(../include/superpixel)
-SET(source ./intrinsic.cc )
-ADD_EXECUTABLE(intrinsic.out ${source})
+SET(SOURCE_2 ./main.cc ./intrinsic/intrinsic.cc)
+ADD_EXECUTABLE(intrinsic.out ${SOURCE_2})
 TARGET_LINK_LIBRARIES(intrinsic.out ${OpenCV_LIBS})
