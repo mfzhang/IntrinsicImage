@@ -33,5 +33,13 @@ bin/*
 lib/*
 build
 .DS_Store
-
+res
+include/[._]*.s[a-w][a-z]
+include/[._]s[a-w][a-z]
+spkie/[._]s[a-w][a-z]
+spkie/[._]*.s[a-w][a-z]
+doc/[._]s[a-w][a-z]
+doc/[._]*.s[a-w][a-z]
+test/[._]s[a-w][a-z]
+test/[._]*.s[a-w][a-z]
 
