@@ -8,6 +8,20 @@
 using namespace std;
 using namespace cv;
 
+/*
+ * Shrinkage process
+ */
+Mat_<double> Shrink(const Mat_<double>& input, double lambda){
+    Mat_<double> output(input.rows, input.cols, 0);
+    for(int i = 0;i < input.rows;i++){
+        for(int j = 0;j < input.cols;j++){
+            double temp = input(i,j);
+            output(i,j) = temp / abs(temp) * max(abs(temp) - lambda,0);
+        }
+    }
+    return output;
+}
+
 
 /*
  * Solve the l1-regularization problem using Bregman Iteration.
@@ -49,8 +63,8 @@ Mat_<double> L1Regularization(const Mat_<double>& pairwise_weight,
         Mat_<double> temp_1 = pairwise_weight * curr_reflectance;
         Mat_<double> temp_2 = global_sparsity_matrix * curr_reflectance;
         // update d_1 and d_2
-        d_1 = shrink(temp_1 + b_1, 1.0 / lambda);
-        d_2 = shrink(temp_2 + b_2, 1.0 / lambda); 
+        d_1 = Shrink(temp_1 + b_1, 1.0 / lambda);
+        d_2 = Shrink(temp_2 + b_2, 1.0 / lambda); 
         
         // update b_1 and b_2
         b_1 = b_1 + temp_1 - d_1;
