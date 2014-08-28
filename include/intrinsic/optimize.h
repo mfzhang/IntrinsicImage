@@ -58,6 +58,8 @@ Mat_<double> L1Regularization(const Mat_<double>& pairwise_weight,
    
     for(int i = 0;i < iteration_num;i++){
         // solve for new reflectance
+        Mat_<double> right_hand = mu * intensity + lambda * pairwise_weight.t() * (d_1 - b_1) + 
+                                lambda * global_sparsity_matrix.t() * (d_2 - b_2); 
         solve(left_hand,right_hand,curr_reflectance);
         
         Mat_<double> temp_1 = pairwise_weight * curr_reflectance;
