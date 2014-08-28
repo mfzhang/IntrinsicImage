@@ -13,6 +13,10 @@ using namespace std;
 using namespace cv;
 typedef Mat_<Vec3b> CVImage;
 
+
+/*
+ * Given an image in Mat_<Vec3b>, turn it into image<rgb>
+ */
 image<rgb> MatToImage(const CVImage& input){
     int height = input.rows;
     int width = input.cols;
@@ -30,6 +34,9 @@ image<rgb> MatToImage(const CVImage& input){
     return output;
 }
 
+/*
+ * Given an image stored in image<rgb>, turn it into Mat_<Vec3b>.
+ */
 CVImage ImageToMat(const image<rgb>& input){
     int height = input.height();
     int width = input.width();
@@ -45,6 +52,10 @@ CVImage ImageToMat(const image<rgb>& input){
     return output;
 }
 
+
+/*
+ * Class for representing a cluster of pixels.
+ */
 class ReflectanceCluster{
     public:
         ReflectanceCluster(){
@@ -193,6 +204,41 @@ vector<ReflectanceCluster> GetReflectanceCluster(image<rgb> *im, float sigma, fl
 
     return result;
 }
+
+
+/*
+ * Calculate the pairwise weight between ReflectanceCluster. 
+ * For details, see "Intrinsic Images in the Wild", SIGGRAPH 2014
+ */
+Mat_<double> GetPairwiseWeight(const vector<ReflectanceCluster>& clusters,
+                               const CVImage& image){ 
+    int cluster_num = clusters.size();
+    int image_width = image.cols;
+    int image_height = image.rows;
+    Mat_<double> weight(cluster_num,cluster_num,0);
+    // calculate the feature for each cluster 
+    // feature: x, y, intensity, red-chromaticity, green-chromaticity 
+    Mat_<double> feature(cluster_num,5,0);    
+    double theta_p = 0.1;
+    double theta_l = 0.1;
+    double theta_c = 0.025;
+    double image_diameter = sqrt(image_width * image_width + image_height * image_height); 
+
+    for(int i = 0;i < cluster_num;i++){
+        Point2i center = clusters[i].GetClusterCenter();
+        feature(i,0) = center.x / (image_diameter * theta_p);
+        feature(i,1) = center.y / (image_diameter * theta_p);
+        double b = image(center.x,center.y)[0];
+        double g = image(center.x,center.y)[1];
+        double r = image(center.x,center.y)[2];
+        feature(i,2) = (b + g + r) / (3 * theta_l);
+        feature(i,3) = r / (theta_c * (b + g + r));
+        feature(i,4) = g / (theta_c * (b + g + r));
+    }
+
+
+} 
+
 
 
 #endif
