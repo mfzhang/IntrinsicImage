@@ -235,8 +235,18 @@ Mat_<double> GetPairwiseWeight(const vector<ReflectanceCluster>& clusters,
         feature(i,3) = r / (theta_c * (b + g + r));
         feature(i,4) = g / (theta_c * (b + g + r));
     }
-
-
+    
+    // calculate the weight
+    for(int i = 0;i < cluster_num;i++){
+        for(int j = i+1;j < cluster_num;j++){
+            Mat_<double> row_1 = feature.row(i);
+            Mat_<double> row_2 = feature.row(j);
+            double w = exp( -0.5 * pow(norm(row_1 - row_2), 2.0));         
+            weight(i,j) = w;
+            weight(j,i) = w; 
+        }
+    }
+    return weight;
 } 
 
 
