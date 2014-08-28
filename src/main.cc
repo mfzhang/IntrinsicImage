@@ -3,7 +3,8 @@
  * @version 2014/08/27
  */
 
-#include "./intrinsic/intrinsic.h"
+#include "intrinsic.h"
+
 
 int main(){
     string path = "./../res/MIT/MIT-Berkeley-Laboratory/";    
@@ -13,7 +14,6 @@ int main(){
     double sigma = 0; 
     int k = 30;
     int min_size = 1;
-    /*
     CVImage original_image = imread(original_image_path);
     Mat_<uchar> mask_image = imread(mask_path,0);
     image<rgb> input = MatToImage(original_image); 
@@ -26,7 +26,6 @@ int main(){
     printf("got %d components\n", num_css);
     printf("done! uff...thats hard work.\n");
     waitKey(0); 
-    */
     return 0;
 }
 

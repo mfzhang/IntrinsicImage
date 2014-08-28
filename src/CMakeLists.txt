@@ -1,5 +1,5 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
 FIND_PACKAGE( OpenCV REQUIRED )
-SET(SOURCE_2 ./main.cc ./intrinsic/intrinsic.cc)
+SET(SOURCE_2 ./main.cc)
 ADD_EXECUTABLE(intrinsic.out ${SOURCE_2})
 TARGET_LINK_LIBRARIES(intrinsic.out ${OpenCV_LIBS})

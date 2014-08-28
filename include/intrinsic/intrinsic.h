@@ -7,14 +7,10 @@
 #include <opencv2/opencv.hpp>
 #include <cstdio>
 #include "segment-image.h"
+
 using namespace std;
 using namespace cv;
 typedef Mat_<Vec3b> CVImage;
-
-image<rgb> MatToImage(const CVImage& input);
-CVImage ImageToMat(const image<rgb>& input);
-
-
 
 image<rgb> MatToImage(const CVImage& input){
     int height = input.rows;
