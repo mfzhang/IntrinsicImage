@@ -25,7 +25,16 @@ Mat_<double> Shrink(const Mat_<double>& input, double lambda){
 
 /*
  * Solve the l1-regularization problem using Bregman Iteration.
- * For details, please see "The Split Bregman Method for L1 Regularized Problems" 
+ * Return the reflectance value.
+ * For details, please see "The Split Bregman Method for L1 Regularized Problems", 
+ *
+ * pairwise_weight: weight between each pair of ReflectanceCluster
+ * intensity: the intensity of center of each ReflectanceCluster
+ * reflectance: initial reflectance. 
+ * alpha: weight for global sparsity of reflectance
+ * mu: weight for difference between reflectance and intensity
+ * lambda: weight for l1-regularization
+ * iteration_num: number of iterations for l1-regularization 
  */
 Mat_<double> L1Regularization(const Mat_<double>& pairwise_weight,
                               const Mat_<double>& reflectance,
