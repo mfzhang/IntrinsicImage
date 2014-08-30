@@ -85,5 +85,108 @@ Mat_<double> L1Regularization(const Mat_<double>& pairwise_weight,
     return curr_reflectance;
 }
 
+/*
+ * Given an image, and its reflectance, enforce shading smooth.
+ * This can be solved by "Iteratively Reweighted Least Square"
+ */
+Mat_<double> ShadingSmooth(const Mat_<double>& reflectance,
+                           const Mat_<double>& log_image){
+    int image_width = log_image.cols;
+    int image_height = log_image.rows;
+    Mat_<double> new_ratio(image_height,image_width,1);
+    Mat_<double> old_ratio(image_height,image_width,0);
+    int lambda = 10;
+    int step_size = 0.01; // initial step size for gradient descent
+    int precision = 1e-7;
+    
+    while(true){
+        pow(new_ratio - old_ratio, 2.0, old_ratio);
+        if(sum(old_ratio)[0] < precision){
+            break;
+        } 
+        old_ratio = new_ratio.clone();
+        // get laplacian result on current shading 
+        Mat_<double> shading = log_image - reflectance.mul(new_ratio);  
+        Laplacian(shading,shading,1);
+        double penalty_part = sum(old_ratio)[0] - image_height * image_width;
+        // center pixels
+        for(int i = 1;i < image_height-1;i++){
+            for(int j = 1;j < image_width - 1;j++){
+                new_ratio(i,j) = new_ratio(i,j) - step_size * (8 * shading(i,j) * reflectance(i,j)
+                    - 2 * reflectance(i,j) * shading(i,j-1) 
+                    - 2 * reflectance(i,j) * shading(i,j+1)
+                    - 2 * reflectance(i,j) * shading(i-1,j)
+                    - 2 * reflectance(i,j) * shading(i+1,j)
+                    + 2 * penalty_part); 
+            }
+        }
+        // for first row pixels 
+        for(int i = 0;i < 1;i++){
+            for(int j = 1;j < image_width - 1;j++){
+                new_ratio(i,j) = new_ratio(i,j) - step_size * (6 * shading(i,j) * reflectance(i,j)
+                    - 2 * reflectance(i,j) * shading(i,j-1) 
+                    - 2 * reflectance(i,j) * shading(i,j+1)
+                    - 2 * reflectance(i,j) * shading(i+1,j)
+                    + 2 * penalty_part); 
+            }
+        }
+        // for last row pixels
+        for(int i = image_width-1;i < image_width;i++){
+            for(int j = 1;j < image_width - 1;j++){
+                new_ratio(i,j) = new_ratio(i,j) - step_size * (6 * shading(i,j) * reflectance(i,j)
+                    - 2 * reflectance(i,j) * shading(i,j-1) 
+                    - 2 * reflectance(i,j) * shading(i,j+1)
+                    - 2 * reflectance(i,j) * shading(i-1,j)
+                    + 2 * penalty_part); 
+            }
+        }
+        // for first column pixels
+        for(int i = 1;i < image_height-1;i++){
+            for(int j = 0;j < 1;j++){
+                new_ratio(i,j) = new_ratio(i,j) - step_size * (6 * shading(i,j) * reflectance(i,j)
+                    - 2 * reflectance(i,j) * shading(i,j+1)
+                    - 2 * reflectance(i,j) * shading(i-1,j)
+                    - 2 * reflectance(i,j) * shading(i+1,j)
+                    + 2 * penalty_part); 
+            }
+        }
+        // for last column pixels
+        for(int i = 1;i < image_height-1;i++){
+            for(int j = image_width - 1;j < image_width;j++){
+                new_ratio(i,j) = new_ratio(i,j) - step_size * (6 * shading(i,j) * reflectance(i,j)
+                        - 2 * reflectance(i,j) * shading(i,j-1)
+                        - 2 * reflectance(i,j) * shading(i-1,j)
+                        - 2 * reflectance(i,j) * shading(i+1,j)
+                        + 2 * penalty_part); 
+            }
+        }
+        // corner pixels
+        int i = 0; int j = 0; 
+        new_ratio(i,j) = new_ratio(i,j) - step_size * (4 * shading(i,j) * reflectance(i,j)
+                - 2 * reflectance(i,j) * shading(i,j+1)
+                - 2 * reflectance(i,j) * shading(i+1,j)
+                + 2 * penalty_part); 
+        i = image_height - 1; j = 0;
+        new_ratio(i,j) = new_ratio(i,j) - step_size * (4 * shading(i,j) * reflectance(i,j)
+                - 2 * reflectance(i,j) * shading(i-1,j)
+                - 2 * reflectance(i,j) * shading(i,j+1)
+                + 2 * penalty_part);
+        i = image_height - 1; j = image_width-1;
+        new_ratio(i,j) = new_ratio(i,j) - step_size * (4 * shading(i,j) * reflectance(i,j)
+                - 2 * reflectance(i,j) * shading(i-1,j)
+                - 2 * reflectance(i,j) * shading(i,j-1)
+                + 2 * penalty_part);
+        i = 0; j = image_width-1;
+        new_ratio(i,j) = new_ratio(i,j) - step_size * (4 * shading(i,j) * reflectance(i,j)
+                - 2 * reflectance(i,j) * shading(i,j-1)
+                - 2 * reflectance(i,j) * shading(i+1,j)
+                + 2 * penalty_part);
+    
+        // calculate objective function
+         
+
+    }     
+} 
+
 
 
