@@ -183,10 +183,26 @@ Mat_<double> ShadingSmooth(const Mat_<double>& reflectance,
                 + 2 * penalty_part);
     
         // calculate objective function
-         
-
-    }     
+        Mat_<double> new_shading = log_image - reflectance.mul(new_ratio);
+        Laplacian(new_shading,new_shading,1);
+        pow(new_shading,2.0,new_shading);
+        double new_objective_value = sum(new_shading)[0] + lambda * 
+                pow((sum(new_ratio)[0] - image_width * image_height),2.0);
+        pow(shading,2.0,shading);
+        double objective_value = sum(shading)[0] + lambda * pow(penalty_part,2.0);
+        
+        if(new_objective_value < objective_value){
+            step_size = 2 * step_size; 
+        } 
+        else{
+            new_ratio = old_ratio;
+            step_size = step_size / 2.0;
+        }
+    }
+    return new_ratio;
 } 
+
+
 
 
 
