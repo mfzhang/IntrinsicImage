@@ -7,7 +7,7 @@
 #include <opencv2/opencv.hpp>
 #include <cstdio>
 #include "segment-image.h"
-#incldue <map>
+#include <map>
 
 using namespace std;
 using namespace cv;
@@ -59,8 +59,8 @@ CVImage ImageToMat(const image<rgb>& input){
 class ReflectanceCluster{
     public:
         ReflectanceCluster(){
-            cluster_size = 0;
-            cluster_center = Point2i(-1,-1); 
+            cluster_size_ = 0;
+            cluster_center_ = Point2i(-1,-1); 
         }
         Point2i GetClusterCenter(){
             if(cluster_center_.x >= 0 && cluster_center_.y >= 0){
@@ -78,18 +78,18 @@ class ReflectanceCluster{
             return cluster_center_;
         }
 
-        void GetClusterSize(){
-            return cluster_size;
+        int GetClusterSize(){
+            return cluster_size_;
         }
         void AddPixel(Point2i pixel){
-            pixel_locations.push_back(pixel); 
-            cluster_size++;
+            pixel_locations_.push_back(pixel); 
+            cluster_size_++;
         } 
     private:
         int cluster_size_;
         Point2i cluster_center_;
         vector<Point2i> pixel_locations_; 
-}
+};
 
 
 /*
@@ -210,15 +210,15 @@ vector<ReflectanceCluster> GetReflectanceCluster(image<rgb> *im, float sigma, fl
  * Calculate the pairwise weight between ReflectanceCluster. 
  * For details, see "Intrinsic Images in the Wild", SIGGRAPH 2014
  */
-Mat_<double> GetPairwiseWeight(const vector<ReflectanceCluster>& clusters,
+Mat_<double> GetPairwiseWeight(vector<ReflectanceCluster>& clusters,
                                const CVImage& image){ 
     int cluster_num = clusters.size();
     int image_width = image.cols;
     int image_height = image.rows;
-    Mat_<double> weight(cluster_num,cluster_num,0);
+    Mat_<double> weight(cluster_num,cluster_num,0.0);
     // calculate the feature for each cluster 
     // feature: x, y, intensity, red-chromaticity, green-chromaticity 
-    Mat_<double> feature(cluster_num,5,0);    
+    Mat_<double> feature(cluster_num,5,0.0);    
     double theta_p = 0.1;
     double theta_l = 0.1;
     double theta_c = 0.025;

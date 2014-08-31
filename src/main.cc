@@ -4,7 +4,7 @@
  */
 
 #include "intrinsic.h"
-
+#include "optimize.h"
 
 int main(){
     string path = "./../res/MIT/MIT-Berkeley-Laboratory/";    
@@ -33,29 +33,25 @@ int main(){
     Mat_<double> pairwise_weight = GetPairwiseWeight(clusters,original_image);
 
     // Initial reflectance to log(intensity) 
-    Mat_<double> log_image(image_height,image_width,0);
+    Mat_<double> log_image(image_height,image_width,0.0);
     for(int i = 0;i < image_height;i++){
-        for(int j = 0;j < image_width.cols;j++){
+        for(int j = 0;j < image_width;j++){
             // prevent log(0)
             log_image(i,j) = log(original_image_gray(i,j) + 1); 
         }
     }
      
     // Solve reflectance
-    int alpha = ;
-    int mu = ;
-    int iteration_num = ;
-    int lambda = ;
+    int alpha = 1;
+    int mu = 1;
+    int iteration_num = 10;
+    int lambda = 2 * mu;
     Mat_<double> reflectance = log_image.clone();
-    reflectance = L1Regularization(pairwise_weight, reflectance, intensity, alpha, mu, lambda, iteration_num);
+    reflectance = L1Regularization(pairwise_weight, reflectance, log_image, alpha, mu, lambda, iteration_num);
     
     // Solve shading
     Mat_<double> ratio = ShadingSmooth(reflectance, log_image);
-    
-
     return 0;
-
-
 }
 
 

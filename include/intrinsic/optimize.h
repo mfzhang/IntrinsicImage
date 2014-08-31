@@ -12,11 +12,11 @@ using namespace cv;
  * Shrinkage process
  */
 Mat_<double> Shrink(const Mat_<double>& input, double lambda){
-    Mat_<double> output(input.rows, input.cols, 0);
+    Mat_<double> output(input.rows, input.cols, 0.0);
     for(int i = 0;i < input.rows;i++){
         for(int j = 0;j < input.cols;j++){
             double temp = input(i,j);
-            output(i,j) = temp / abs(temp) * max(abs(temp) - lambda,0);
+            output(i,j) = temp / abs(temp) * max(abs(temp) - lambda,0.0);
         }
     }
     return output;
@@ -44,8 +44,8 @@ Mat_<double> L1Regularization(const Mat_<double>& pairwise_weight,
                               double lambda,
                               int iteration_num){
     // construct the matrix for global entropy
-    Mat_<double> global_sparsity_matrix(cluster_num*(cluster_num+1)/2, cluster_num); 
     int cluster_num = pairwise_weight.rows;
+    Mat_<double> global_sparsity_matrix(cluster_num*(cluster_num+1)/2, cluster_num); 
     int count = 0;
     for(int i = 0;i < cluster_num;i++){
         for(int j = i+1;j < cluster_num;j++){
@@ -60,10 +60,10 @@ Mat_<double> L1Regularization(const Mat_<double>& pairwise_weight,
                                 + lambda * global_sparsity_matrix.t() * global_sparsity_matrix;
     
     Mat_<double> curr_reflectance = intensity;
-    Mat_<double> d_1(pairwise_weight.rows,1,0);
-    Mat_<double> d_2(global_sparsity_matrix.rows,1,0);
-    Mat_<double> b_1(pairwise_weight.rows,1,0);
-    Mat_<double> b_2(global_sparsity_matrix.rows,1,0);
+    Mat_<double> d_1(pairwise_weight.rows,1,0.0);
+    Mat_<double> d_2(global_sparsity_matrix.rows,1,0.0);
+    Mat_<double> b_1(pairwise_weight.rows,1,0.0);
+    Mat_<double> b_2(global_sparsity_matrix.rows,1,0.0);
    
     for(int i = 0;i < iteration_num;i++){
         // solve for new reflectance
@@ -93,11 +93,11 @@ Mat_<double> ShadingSmooth(const Mat_<double>& reflectance,
                            const Mat_<double>& log_image){
     int image_width = log_image.cols;
     int image_height = log_image.rows;
-    Mat_<double> new_ratio(image_height,image_width,1);
-    Mat_<double> old_ratio(image_height,image_width,0);
+    Mat_<double> new_ratio(image_height,image_width,1.0);
+    Mat_<double> old_ratio(image_height,image_width,0.0);
     int lambda = 10;
-    int step_size = 0.01; // initial step size for gradient descent
-    int precision = 1e-7;
+    double step_size = 0.01; // initial step size for gradient descent
+    double precision = 1.0e-7;
     
     while(true){
         pow(new_ratio - old_ratio, 2.0, old_ratio);
@@ -203,6 +203,6 @@ Mat_<double> ShadingSmooth(const Mat_<double>& reflectance,
 } 
 
 
-
+#endif
 
 
