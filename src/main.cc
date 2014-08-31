@@ -7,13 +7,11 @@
 #include "optimize.h"
 
 int main(){
-    string path = "./../res/MIT/MIT-Berkeley-Laboratory/";    
-    string original_image_path = path + "raccoon/original.png";
-    string mask_path = path + "raccoon/mask.png"; 
+    string original_image_path = "./../res/baby.tif";    
     // parameters
     double sigma = 0; 
     int k = 30;
-    int min_size = 1;
+    int min_size = 20;
     
     // read image 
     CVImage original_image = imread(original_image_path);
@@ -26,9 +24,11 @@ int main(){
     // segment the image into superpixels and get clusters 
     int num_css; 
     printf("Segment image...\n");
-    vector<ReflectanceCluster> clusters = GetReflectanceCluster(&input, sigma, k, min_size, &num_css);
-    waitKey(0); 
-    
+    CVImage segment_result;
+    vector<ReflectanceCluster> clusters = GetReflectanceCluster(&input, sigma, k, min_size, &num_css, segment_result);
+    cout<<"Number of clusters: "<<num_css<<endl;
+    imshow("Segment result", segment_result);
+
     // Get pairwise weight of clusters
     Mat_<double> pairwise_weight = GetPairwiseWeight(clusters,original_image);
 
@@ -48,9 +48,15 @@ int main(){
     int lambda = 2 * mu;
     Mat_<double> reflectance = log_image.clone();
     reflectance = L1Regularization(pairwise_weight, reflectance, log_image, alpha, mu, lambda, iteration_num);
+
+    for(int i = 0;i < 100;i++){
+        cout<<reflectance(0,i)<<" ";
+    } 
+    cout<<endl;
     
+
     // Solve shading
-    Mat_<double> ratio = ShadingSmooth(reflectance, log_image);
+    // Mat_<double> raio = ShadingSmooth(reflectance, log_image);
     return 0;
 }
 

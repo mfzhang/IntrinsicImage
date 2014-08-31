@@ -44,6 +44,7 @@ Mat_<double> L1Regularization(const Mat_<double>& pairwise_weight,
                               double lambda,
                               int iteration_num){
     // construct the matrix for global entropy
+    cout<<"Solve reflectance..."<<endl;
     int cluster_num = pairwise_weight.rows;
     Mat_<double> global_sparsity_matrix(cluster_num*(cluster_num+1)/2, cluster_num); 
     int count = 0;
@@ -66,6 +67,7 @@ Mat_<double> L1Regularization(const Mat_<double>& pairwise_weight,
     Mat_<double> b_2(global_sparsity_matrix.rows,1,0.0);
    
     for(int i = 0;i < iteration_num;i++){
+        cout<<"Iter: "<<i<<endl;
         // solve for new reflectance
         Mat_<double> right_hand = mu * intensity + lambda * pairwise_weight.t() * (d_1 - b_1) + 
                                 lambda * global_sparsity_matrix.t() * (d_2 - b_2); 

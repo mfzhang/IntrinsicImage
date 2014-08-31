@@ -104,7 +104,7 @@ class ReflectanceCluster{
  * num_ccs: number of connected components in the segmentation.
  */
 vector<ReflectanceCluster> GetReflectanceCluster(image<rgb> *im, float sigma, float c, int min_size,
-        int *num_ccs) {
+        int *num_ccs, CVImage& output) {
     int width = im->width();
     int height = im->height();
 
@@ -199,6 +199,23 @@ vector<ReflectanceCluster> GetReflectanceCluster(image<rgb> *im, float sigma, fl
             }
         }
     }  
+    
+    output = CVImage(height,width, Vec3b(0,0,0));  
+    rgb *colors = new rgb[width*height];
+    for (int i = 0; i < width*height; i++){
+        colors[i] = random_rgb();
+    }
+
+    for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+            int comp = u->find(y * width + x);
+            // imRef(output, x, y) = colors[comp];
+            output(y,x)[0] = colors[comp].b;
+            output(y,x)[1] = colors[comp].g;
+            output(y,x)[2] = colors[comp].r;
+        }
+    }  
+
 
     delete u;
 
@@ -212,6 +229,7 @@ vector<ReflectanceCluster> GetReflectanceCluster(image<rgb> *im, float sigma, fl
  */
 Mat_<double> GetPairwiseWeight(vector<ReflectanceCluster>& clusters,
                                const CVImage& image){ 
+    cout<<"Get pairwise weight..."<<endl;
     int cluster_num = clusters.size();
     int image_width = image.cols;
     int image_height = image.rows;
