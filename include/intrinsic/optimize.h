@@ -38,7 +38,7 @@ Mat_<double> Shrink(const Mat_<double>& input, double lambda){
  */
 Mat_<double> L1Regularization(const Mat_<double>& pairwise_weight,
                               const Mat_<double>& reflectance,
-                              const Mat_<uchar>& intensity,
+                              const Mat_<double>& intensity,
                               double alpha,
                               double mu,
                               double lambda,
@@ -46,8 +46,10 @@ Mat_<double> L1Regularization(const Mat_<double>& pairwise_weight,
     // construct the matrix for global entropy
     cout<<"Solve reflectance..."<<endl;
     int cluster_num = pairwise_weight.rows;
+    cout<<cluster_num<<endl;
     Mat_<double> global_sparsity_matrix(cluster_num*(cluster_num+1)/2, cluster_num); 
-    int count = 0;
+    cout<<"Here OK 1"<<endl;
+	int count = 0;
     for(int i = 0;i < cluster_num;i++){
         for(int j = i+1;j < cluster_num;j++){
             global_sparsity_matrix(count,i) = alpha;
@@ -55,7 +57,6 @@ Mat_<double> L1Regularization(const Mat_<double>& pairwise_weight,
             count++;
         }
     }
-    
     Mat_<double> identity_matrix = Mat::eye(cluster_num,cluster_num, CV_64FC1); 
     Mat_<double> left_hand = mu * identity_matrix + lambda * pairwise_weight.t() * pairwise_weight
                                 + lambda * global_sparsity_matrix.t() * global_sparsity_matrix;
@@ -69,6 +70,7 @@ Mat_<double> L1Regularization(const Mat_<double>& pairwise_weight,
     for(int i = 0;i < iteration_num;i++){
         cout<<"Iter: "<<i<<endl;
         // solve for new reflectance
+	
         Mat_<double> right_hand = mu * intensity + lambda * pairwise_weight.t() * (d_1 - b_1) + 
                                 lambda * global_sparsity_matrix.t() * (d_2 - b_2); 
         solve(left_hand,right_hand,curr_reflectance);

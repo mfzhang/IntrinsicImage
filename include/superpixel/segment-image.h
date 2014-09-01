@@ -20,9 +20,9 @@
 #define SEGMENT_IMAGE
 
 #include <cstdlib>
-#include <image.h>
-#include <misc.h>
-#include <filter.h>
+#include "image.h"
+#include "misc.h"
+#include "filter.h"
 #include "segment-graph.h"
 
 // random color
@@ -30,9 +30,9 @@ rgb random_rgb(){
     rgb c;
     double r;
 
-    c.r = (uchar)random();
-    c.g = (uchar)random();
-    c.b = (uchar)random();
+    c.r = (uchar)(rand()%256);
+    c.g = (uchar)(rand()%256);
+    c.b = (uchar)(rand()%256);
 
     return c;
 }

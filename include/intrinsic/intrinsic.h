@@ -6,7 +6,7 @@
 #include <cmath>
 #include <opencv2/opencv.hpp>
 #include <cstdio>
-#include "segment-image.h"
+#include "../superpixel/segment-image.h"
 #include <map>
 
 using namespace std;
@@ -17,10 +17,10 @@ typedef Mat_<Vec3b> CVImage;
 /*
  * Given an image in Mat_<Vec3b>, turn it into image<rgb>
  */
-image<rgb> MatToImage(const CVImage& input){
+image<rgb>* MatToImage(const CVImage& input){
     int height = input.rows;
     int width = input.cols;
-    image<rgb> output(width,height);
+    image<rgb>* output = new image<rgb>(width,height);
 
     for(int x = 0;x < height;x++){
         for(int y = 0;y < width;y++){
@@ -28,7 +28,7 @@ image<rgb> MatToImage(const CVImage& input){
             color.b = input(x,y)[0];
             color.g = input(x,y)[1];
             color.r = input(x,y)[2];  
-            output.access[x][y] = color; 
+            output->access[x][y] = color; 
         }
     } 
     return output;
@@ -115,9 +115,9 @@ vector<ReflectanceCluster> GetReflectanceCluster(image<rgb> *im, float sigma, fl
     // smooth each color channel  
     for (int y = 0; y < height; y++) {
         for (int x = 0; x < width; x++) {
-            imRef(r, x, y) = imRef(im, x, y).r;
-            imRef(g, x, y) = imRef(im, x, y).g;
-            imRef(b, x, y) = imRef(im, x, y).b;
+			r->access[y][x] = im->access[y][x].r;
+			g->access[y][x] = im->access[y][x].g;
+			b->access[y][x] = im->access[y][x].b;
         }
     }
     image<float> *smooth_r = smooth(r, sigma);
