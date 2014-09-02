@@ -45,23 +45,28 @@ int main(){
     }
      
     // Solve reflectance
-    int alpha = 1;
-    int mu = 1;
-    int iteration_num = 7;
-    int lambda = 2 * mu;
-    Mat_<double> reflectance = log_image.clone();
+    double alpha = 0.01;
+    double mu = 10;
+    int iteration_num = 80;
+    double lambda = 2 * mu;
+    Mat_<double> reflectance;
 	Mat_<double> intensity(num_css,1);
 	
 	for(int i = 0;i < num_css;i++){
 		Point2i center = clusters[i].GetClusterCenter();
 		intensity(i,0) = log_image(center.x,center.y);
 	}
+
+	reflectance = intensity.clone();
 	
     reflectance = L1Regularization(pairwise_weight, reflectance, intensity, alpha, mu, lambda, iteration_num);
 
+	/*
     for(int i = 0;i < 100;i++){
         cout<<reflectance(0,i)<<" ";
     } 
+	*/
+	cout<<reflectance<<endl;
 	waitKey(0);
     cout<<endl;
     
