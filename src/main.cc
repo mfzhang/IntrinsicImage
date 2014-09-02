@@ -19,7 +19,7 @@ int main(){
     int image_width = original_image.cols;
     int image_height = original_image.rows; 
     image<rgb>* input = MatToImage(original_image); 
-    imshow("Original image", original_image); 
+    //imshow("Original image", original_image); 
     //waitKey(0);
     // segment the image into superpixels and get clusters 
     int num_css; 
@@ -27,7 +27,7 @@ int main(){
     CVImage segment_result;
     vector<ReflectanceCluster> clusters = GetReflectanceCluster(input, sigma, k, min_size, &num_css, segment_result);
     cout<<"Number of clusters: "<<num_css<<endl;
-    imshow("Segment result", segment_result);
+    //imshow("Segment result", segment_result);
     // waitKey(0);
     
 
@@ -47,7 +47,7 @@ int main(){
     // Solve reflectance
     int alpha = 1;
     int mu = 1;
-    int iteration_num = 10;
+    int iteration_num = 7;
     int lambda = 2 * mu;
     Mat_<double> reflectance = log_image.clone();
 	Mat_<double> intensity(num_css,1);

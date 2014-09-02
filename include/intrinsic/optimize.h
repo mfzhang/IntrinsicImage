@@ -16,8 +16,14 @@ Mat_<double> Shrink(const Mat_<double>& input, double lambda){
     for(int i = 0;i < input.rows;i++){
         for(int j = 0;j < input.cols;j++){
             double temp = input(i,j);
-            output(i,j) = temp / abs(temp) * max(abs(temp) - lambda,0.0);
-        }
+            // output(i,j) = temp / abs(temp) * max(abs(temp) - lambda,0.0);
+			if(temp > lambda){
+				output(i,j) = temp - lambda;
+			}
+			else if(temp < -lambda){
+				output(i,j) = temp + lambda;
+			}
+		}
     }
     return output;
 }
@@ -62,6 +68,7 @@ Mat_<double> L1Regularization(const Mat_<double>& pairwise_weight,
                                 + lambda * global_sparsity_matrix.t() * global_sparsity_matrix;
     
     Mat_<double> curr_reflectance = intensity;
+	// cout<<intensity<<endl;
     Mat_<double> d_1(pairwise_weight.rows,1,0.0);
     Mat_<double> d_2(global_sparsity_matrix.rows,1,0.0);
     Mat_<double> b_1(pairwise_weight.rows,1,0.0);
@@ -74,6 +81,10 @@ Mat_<double> L1Regularization(const Mat_<double>& pairwise_weight,
         Mat_<double> right_hand = mu * intensity + lambda * pairwise_weight.t() * (d_1 - b_1) + 
                                 lambda * global_sparsity_matrix.t() * (d_2 - b_2); 
         solve(left_hand,right_hand,curr_reflectance);
+
+		// cout<<curr_reflectance<<endl;
+
+
         
         Mat_<double> temp_1 = pairwise_weight * curr_reflectance;
         Mat_<double> temp_2 = global_sparsity_matrix * curr_reflectance;
@@ -84,6 +95,10 @@ Mat_<double> L1Regularization(const Mat_<double>& pairwise_weight,
         // update b_1 and b_2
         b_1 = b_1 + temp_1 - d_1;
         b_2 = b_2 + temp_2 - d_2;
+
+		// calculate current objective function value and output
+		double obj_value = sum(abs(temp_1))[0] + sum(abs(temp_2))[0] + lambda * pow(norm(curr_reflectance - intensity),2.0);
+		cout<<obj_value<<endl;
     } 
     
     return curr_reflectance;
