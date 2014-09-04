@@ -35,7 +35,7 @@ Mat_<double> Shrink(const Mat_<double>& input, double lambda){
  * Return the reflectance value.
  * For details, please see "The Split Bregman Method for L1 Regularized Problems", 
  *
- * image: original image
+ * log_image: 
  * intensity: the intensity of center of each ReflectanceCluster
  * reflectance: initial reflectance. 
  * alpha: weight for global sparsity of reflectance
@@ -44,29 +44,32 @@ Mat_<double> Shrink(const Mat_<double>& input, double lambda){
  * iteration_num: number of iterations for l1-regularization 
  * pixel_label: labels for each pixel, pixels in the same clusters have the same label
  */
-Mat_<double> L1Regularization(const Mat_<uchar>& image,
-                              const Mat_<double>& reflectance,
-                              const Mat_<double>& intensity,
+Mat_<double> L1Regularization(const Mat_<uchar>& log_image,
+                              const Mat_<double>& R,
+                              const Mat_<double>& I,
                               const Mat_<int>& pixel_label,
+                              const vector<ReflectanceCluster>& clusters,
                               double alpha,
                               double mu,
                               double lambda,
+                              double beta,
+                              double theta,
                               int iteration_num){
-    int image_width = image.cols;
-    int image_height = image.rows;
+    int image_width = log_image.cols;
+    int image_height = log_image.rows;
 
     // calculate the weight between each pair of clusters
-    Mat_<double> pairwise_weight = GetPairwiseWeight(clusters,original_image);
+    Mat_<double> A = GetPairwiseWeight(clusters,original_image);
     
     // construct the matrix for global entropy
     cout<<"Solve reflectance..."<<endl;
     int cluster_num = pairwise_weight.rows;
-    Mat_<double> global_sparsity_matrix(cluster_num*(cluster_num+1)/2, cluster_num); 
+    Mat_<double> B(cluster_num*(cluster_num+1)/2, cluster_num); 
     int count = 0;
     for(int i = 0;i < cluster_num;i++){
         for(int j = i+1;j < cluster_num;j++){
-            global_sparsity_matrix(count,i) = alpha;
-            global_sparsity_matrix(count,j) = -alpha; 
+            B(count,i) = alpha;
+            B(count,j) = -alpha; 
             count++;
         }
     }
@@ -88,8 +91,8 @@ Mat_<double> L1Regularization(const Mat_<uchar>& image,
     }
 
     int pair_num = pixel_pairs_1.size();    
-    Mat_<double> shading_matrix(pair_num,cluster_num,0.0);
-    Mat_<double> intensity_matrix(pair_num,1,0.0);
+    Mat_<double> D(pair_num,cluster_num,0.0);
+    Mat_<double> C(pair_num,1,0.0);
 
     for(int i = 0;i < pair_num;i++){
         int x_1 = pixel_pairs_1[i].x;
@@ -98,28 +101,42 @@ Mat_<double> L1Regularization(const Mat_<uchar>& image,
         int y_2 = pixel_pairs_2[i].y;
         int label_1 = pixel_label(x_1,y_1);
         int label_2 = pixel_label(x_2,y_2);
-        shading_matrix(i,label_1) = -1;
-        shading_matrix(i,label_2) = 1;
-        intensity_matrix(i,0) = log_image(x_1,y_1) - log_image(x_2,y_2); 
+        D(i,label_1) = -1;
+        D(i,label_2) = 1;
+        C(i,0) = log_image(x_1,y_1) - log_image(x_2,y_2); 
     }
+
+    // average reflectance is set to 0.5
+    double average_reflectance = 0.5;
+    Mat_<double> E(1,cluster_num);
+    double cluster_total_size = 0;
+    for(int i = 0;i < clusters.size();i++){
+        int temp = clusters[i].GetClusterSize();
+        E(0,i) = temp; 
+        cluster_total_size += temp;
+    }
+    E = 1.0 / cluster_total_size * E;
+
+
+
 
 
     Mat_<double> identity_matrix = Mat::eye(cluster_num,cluster_num, CV_64FC1); 
-    Mat_<double> left_hand = mu * identity_matrix + lambda * pairwise_weight.t() * pairwise_weight
-                                + lambda * global_sparsity_matrix.t() * global_sparsity_matrix;
-    
-    Mat_<double> curr_reflectance = intensity.clone();
-    Mat_<double> d_1(pairwise_weight.rows,1,0.0);
-    Mat_<double> d_2(global_sparsity_matrix.rows,1,0.0);
-    Mat_<double> b_1(pairwise_weight.rows,1,0.0);
-    Mat_<double> b_2(global_sparsity_matrix.rows,1,0.0);
+    Mat_<double> left_hand = mu * identity_matrix + lambda * (A.t() * A)
+                                + lambda * (B.t() * B) + beta * D.t() * D + theta * (E.t() * E);
+
+    Mat_<double> curr_reflectance = I.clone();
+    Mat_<double> d_1(A.rows,1,0.0);
+    Mat_<double> d_2(B.rows,1,0.0);
+    Mat_<double> b_1(A.rows,1,0.0);
+    Mat_<double> b_2(B.rows,1,0.0);
    
     for(int i = 0;i < iteration_num;i++){
         cout<<"Iter: "<<i<<endl;
         // solve for new reflectance
     
-        Mat_<double> right_hand = mu * intensity + lambda * pairwise_weight.t() * (d_1 - b_1) + 
-                                lambda * global_sparsity_matrix.t() * (d_2 - b_2); 
+        Mat_<double> right_hand = mu * I + lambda * A.t() * (d_1 - b_1) + 
+                                lambda * B.t() * (d_2 - b_2) - beta * D.t() * C + average_reflectance * theta * E.t(); 
         solve(left_hand,right_hand,curr_reflectance);
 
         // cout<<curr_reflectance<<endl;
