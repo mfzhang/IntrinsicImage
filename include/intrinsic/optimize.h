@@ -33,19 +33,17 @@ Mat_<double> Shrink(const Mat_<double>& input, double lambda){
 /*
  * Solve the l1-regularization problem using Bregman Iteration.
  * Return the reflectance value.
- * For details, please see "The Split Bregman Method for L1 Regularized Problems", 
- *
- * log_image: 
- * intensity: the intensity of center of each ReflectanceCluster
- * reflectance: initial reflectance. 
- * alpha: weight for global sparsity of reflectance
- * mu: weight for difference between reflectance and intensity
- * lambda: weight for l1-regularization
- * iteration_num: number of iterations for l1-regularization 
- * pixel_label: labels for each pixel, pixels in the same clusters have the same label
+ * For details, please see "The Split Bregman Method for L1 Regularized Problems"
+ * The Engergy function is: |AR| + alpha/2 * |BR| + mu/2 * |I-R|^2 + beta/2 * (CR+D)^2 + theta/2 * (ER - 0.5)^2 
+ * 
+ * log_image: image in log domain
+ * original_image: image in Mat_<Vec3b> format
+ * I: average intensity of each clusters
+ * pixel_label: the label of each pixel, pixels in the same cluster have the same label
+ * clusters: cluster result for image
  */
-Mat_<double> L1Regularization(const Mat_<uchar>& log_image,
-                              const Mat_<double>& R,
+Mat_<double> L1Regularization(const Mat_<double>& log_image,
+                              const CVImage& original_image,
                               const Mat_<double>& I,
                               const Mat_<int>& pixel_label,
                               const vector<ReflectanceCluster>& clusters,
