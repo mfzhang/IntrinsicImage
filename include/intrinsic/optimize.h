@@ -66,8 +66,8 @@ Mat_<double> L1Regularization(const Mat_<double>& log_image,
     int count = 0;
     for(int i = 0;i < cluster_num;i++){
         for(int j = i+1;j < cluster_num;j++){
-            B(count,i) = alpha;
-            B(count,j) = -alpha; 
+            B(count,i) = alpha / 2;
+            B(count,j) = -alpha / 2; 
             count++;
         }
     }
@@ -136,17 +136,13 @@ Mat_<double> L1Regularization(const Mat_<double>& log_image,
         Mat_<double> right_hand = mu * I + lambda * A.t() * (d_1 - b_1) + 
                                 lambda * B.t() * (d_2 - b_2) - beta * D.t() * C + average_reflectance * theta * E.t(); 
         solve(left_hand,right_hand,curr_reflectance);
-
-        // cout<<curr_reflectance<<endl;
-
-
         
         Mat_<double> temp_1 = pairwise_weight * curr_reflectance;
         Mat_<double> temp_2 = global_sparsity_matrix * curr_reflectance;
+        
         // update d_1 and d_2
         d_1 = Shrink(temp_1 + b_1, 1.0 / lambda);
         d_2 = Shrink(temp_2 + b_2, 1.0 / lambda); 
-        
         // update b_1 and b_2
         b_1 = b_1 + temp_1 - d_1;
         b_2 = b_2 + temp_2 - d_2;
@@ -154,9 +150,11 @@ Mat_<double> L1Regularization(const Mat_<double>& log_image,
         // calculate current objective function value and output
         double part_1 = sum(abs(temp_1))[0];
         double part_2 = sum(abs(temp_2))[0];
-        double part_3 = lambda * pow(norm(curr_reflectance - intensity),2.0);
-        double obj_value = part_1 + part_2 + part_3;
-        cout<<obj_value<<" "<<part_1<<" "<<part_2<<" "<<part_3<<endl;
+        double part_3 = lambda / 2 * pow(norm(curr_reflectance - intensity),2.0)
+        double part_4 = beta / 2 * pow(norm(C * curr_reflectance + D), 2.0);
+        double part_5 = theta / 2 * pow(E * curr_reflectance - 0.5,2.0);
+        double obj_value = part_1 + part_2 + part_3 + part_4 + part_5;
+        cout<<obj_value<<" "<<part_1<<" "<<part_2<<" "<<part_3<<" "<<part_4<<" "<<part_5<<endl;
     } 
     
     return curr_reflectance;

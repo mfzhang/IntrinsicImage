@@ -19,19 +19,19 @@ int main(){
     int image_width = original_image.cols;
     int image_height = original_image.rows; 
     image<rgb>* input = MatToImage(original_image); 
-    //imshow("Original image", original_image); 
-    //waitKey(0);
+    // imshow("Original image", original_image); 
+    // waitKey(0);
+
     // segment the image into superpixels and get clusters 
     int num_css; 
-    printf("Segment image...\n");
+    cout<<"Segment image...\n"<<endl;
     CVImage segment_result;
     Mat_<int> pixel_label;
     vector<ReflectanceCluster> clusters = GetReflectanceCluster(input, sigma, k, min_size, &num_css, segment_result, pixel_label);
     cout<<"Number of clusters: "<<num_css<<endl;
-    //imshow("Segment result", segment_result);
+    // imshow("Segment result", segment_result);
     // waitKey(0);
     
-
     // Get pairwise weight of clusters
     Mat_<double> pairwise_weight = GetPairwiseWeight(clusters,original_image);
 
@@ -50,30 +50,24 @@ int main(){
     double mu = 10;
     int iteration_num = 80;
     double lambda = 2 * mu;
+    double beta = 1;
+    double theta = 1000;
     Mat_<double> reflectance;
 	Mat_<double> intensity(num_css,1);
-	
 	for(int i = 0;i < num_css;i++){
-		Point2i center = clusters[i].GetClusterCenter();
-		intensity(i,0) = log_image(center.x,center.y);
-	}
+        double temp = 0;
+        vector<Point2i> cluster_pixels = clusters[i].GetPixelLocations();
+        for(int j = 0;j < cluster_pixels.size();j++){
+            temp = temp + log_image(cluster_pixels[j].x, cluster_pixels[j].y);                
+        }
+        intensity(i,0) = temp / cluster_pixels.size();
+    }
 
-	reflectance = intensity.clone();
-	
-    reflectance = L1Regularization(pairwise_weight, reflectance, intensity, pixel_label, alpha, mu, lambda, iteration_num);
-
-	/*
-    for(int i = 0;i < 100;i++){
-        cout<<reflectance(0,i)<<" ";
-    } 
-	*/
+    reflectance = intensity.clone();
+    reflectance = L1Regularization(log_image, original_image, intensity, pixel_label, clusters, alpha, mu, lambda, beta, theta, iteration_num);
 	cout<<reflectance<<endl;
 	waitKey(0);
     cout<<endl;
-    
-
-    // Solve shading
-    // Mat_<double> raio = ShadingSmooth(reflectance, log_image);
     return 0;
 }
 
