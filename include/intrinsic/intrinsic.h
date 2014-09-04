@@ -85,6 +85,9 @@ class ReflectanceCluster{
             pixel_locations_.push_back(pixel); 
             cluster_size_++;
         } 
+        vector<Point2i> GetPixelLocations(){
+            return pixel_locations_;
+        }
     private:
         int cluster_size_;
         Point2i cluster_center_;
@@ -191,7 +194,8 @@ vector<ReflectanceCluster> GetReflectanceCluster(image<rgb> *im, float sigma, fl
             int comp = u->find(y * width + x);
             if(index.count(comp) > 0){
                 int temp = index[comp];
-                result[temp].AddPixel(Point2i(x,y));           
+                result[temp].AddPixel(Point2i(x,y));
+                pixel_label(x,y) = temp;           
             }
             else{
                 index[comp] = count;
@@ -216,7 +220,6 @@ vector<ReflectanceCluster> GetReflectanceCluster(image<rgb> *im, float sigma, fl
             output(y,x)[0] = colors[comp].b;
             output(y,x)[1] = colors[comp].g;
             output(y,x)[2] = colors[comp].r;
-            pixel_label(x,y) = comp;
         }
     }  
 
@@ -250,9 +253,20 @@ Mat_<double> GetPairwiseWeight(vector<ReflectanceCluster>& clusters,
         Point2i center = clusters[i].GetClusterCenter();
         feature(i,0) = center.x / (image_diameter * theta_p);
         feature(i,1) = center.y / (image_diameter * theta_p);
-        double b = image(center.x,center.y)[0];
-        double g = image(center.x,center.y)[1];
-        double r = image(center.x,center.y)[2];
+        double b = 0;
+        double g = 0;
+        double r = 0;
+        vector<Point2i> pixel_locations = clusters[i].GetPixelLocations();
+        for(int j = 0;j < pixel_locations.size();j++){
+            int x = pixel_locations[j].x;
+            int y = pixel_locations[j].y;
+            b += image(x,y)[0];
+            g += image(x,y)[1];
+            r += image(x,y)[2];
+        }
+        b = b / pixel_locations.size();
+        g = g / pixel_locations.size();
+        r = r / pixel_locations.size();
         feature(i,2) = (b + g + r) / (3 * theta_l);
         feature(i,3) = r / (theta_c * (b + g + r));
         feature(i,4) = g / (theta_c * (b + g + r));
