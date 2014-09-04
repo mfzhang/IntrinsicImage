@@ -4,6 +4,7 @@
 #include <vector>
 #include <cmath>
 #include <opencv2/opencv.hpp>
+#include "./intrinsic.h"
 #include <cstdio>
 using namespace std;
 using namespace cv;
@@ -17,13 +18,13 @@ Mat_<double> Shrink(const Mat_<double>& input, double lambda){
         for(int j = 0;j < input.cols;j++){
             double temp = input(i,j);
             // output(i,j) = temp / abs(temp) * max(abs(temp) - lambda,0.0);
-			if(temp > lambda){
-				output(i,j) = temp - lambda;
-			}
-			else if(temp < -lambda){
-				output(i,j) = temp + lambda;
-			}
-		}
+            if(temp > lambda){
+                output(i,j) = temp - lambda;
+            }
+            else if(temp < -lambda){
+                output(i,j) = temp + lambda;
+            }
+        }
     }
     return output;
 }
@@ -34,28 +35,34 @@ Mat_<double> Shrink(const Mat_<double>& input, double lambda){
  * Return the reflectance value.
  * For details, please see "The Split Bregman Method for L1 Regularized Problems", 
  *
- * pairwise_weight: weight between each pair of ReflectanceCluster
+ * image: original image
  * intensity: the intensity of center of each ReflectanceCluster
  * reflectance: initial reflectance. 
  * alpha: weight for global sparsity of reflectance
  * mu: weight for difference between reflectance and intensity
  * lambda: weight for l1-regularization
  * iteration_num: number of iterations for l1-regularization 
+ * pixel_label: labels for each pixel, pixels in the same clusters have the same label
  */
-Mat_<double> L1Regularization(const Mat_<double>& pairwise_weight,
+Mat_<double> L1Regularization(const Mat_<uchar>& image,
                               const Mat_<double>& reflectance,
                               const Mat_<double>& intensity,
+                              const Mat_<int>& pixel_label,
                               double alpha,
                               double mu,
                               double lambda,
                               int iteration_num){
+    int image_width = image.cols;
+    int image_height = image.rows;
+
+    // calculate the weight between each pair of clusters
+    Mat_<double> pairwise_weight = GetPairwiseWeight(clusters,original_image);
+    
     // construct the matrix for global entropy
     cout<<"Solve reflectance..."<<endl;
     int cluster_num = pairwise_weight.rows;
-    cout<<cluster_num<<endl;
     Mat_<double> global_sparsity_matrix(cluster_num*(cluster_num+1)/2, cluster_num); 
-    cout<<"Here OK 1"<<endl;
-	int count = 0;
+    int count = 0;
     for(int i = 0;i < cluster_num;i++){
         for(int j = i+1;j < cluster_num;j++){
             global_sparsity_matrix(count,i) = alpha;
@@ -63,12 +70,45 @@ Mat_<double> L1Regularization(const Mat_<double>& pairwise_weight,
             count++;
         }
     }
+
+    // shading smooth part
+    vector<Point2i> pixel_pairs_1;
+    vector<Point2i> pixel_pairs_2;
+    for(int i = 0;i < image_height-1;i++){
+        for(int j = 0;j < image_width-1;j++){
+            if(pixel_label(i,j) != pixel_label(i,j+1)){
+                pixel_pairs_1.push_back(Point2i(i,j));
+                pixel_pairs_2.push_back(Point2i(i,j+1));    
+            }    
+            if(pixel_label(i,j) != pixel_label(i+1,j)){
+                pixel_pairs_1.push_back(Point2i(i,j));
+                pixel_pairs_2.push_back(Point2i(i+1,j));
+            }
+        }
+    }
+
+    int pair_num = pixel_pairs_1.size();    
+    Mat_<double> shading_matrix(pair_num,cluster_num,0.0);
+    Mat_<double> intensity_matrix(pair_num,1,0.0);
+
+    for(int i = 0;i < pair_num;i++){
+        int x_1 = pixel_pairs_1[i].x;
+        int y_1 = pixel_pairs_1[i].y;
+        int x_2 = pixel_pairs_2[i].x;
+        int y_2 = pixel_pairs_2[i].y;
+        int label_1 = pixel_label(x_1,y_1);
+        int label_2 = pixel_label(x_2,y_2);
+        shading_matrix(i,label_1) = -1;
+        shading_matrix(i,label_2) = 1;
+        intensity_matrix(i,0) = log_image(x_1,y_1) - log_image(x_2,y_2); 
+    }
+
+
     Mat_<double> identity_matrix = Mat::eye(cluster_num,cluster_num, CV_64FC1); 
     Mat_<double> left_hand = mu * identity_matrix + lambda * pairwise_weight.t() * pairwise_weight
                                 + lambda * global_sparsity_matrix.t() * global_sparsity_matrix;
     
-    Mat_<double> curr_reflectance = intensity;
-	// cout<<intensity<<endl;
+    Mat_<double> curr_reflectance = intensity.clone();
     Mat_<double> d_1(pairwise_weight.rows,1,0.0);
     Mat_<double> d_2(global_sparsity_matrix.rows,1,0.0);
     Mat_<double> b_1(pairwise_weight.rows,1,0.0);
@@ -77,12 +117,12 @@ Mat_<double> L1Regularization(const Mat_<double>& pairwise_weight,
     for(int i = 0;i < iteration_num;i++){
         cout<<"Iter: "<<i<<endl;
         // solve for new reflectance
-	
+    
         Mat_<double> right_hand = mu * intensity + lambda * pairwise_weight.t() * (d_1 - b_1) + 
                                 lambda * global_sparsity_matrix.t() * (d_2 - b_2); 
         solve(left_hand,right_hand,curr_reflectance);
 
-		// cout<<curr_reflectance<<endl;
+        // cout<<curr_reflectance<<endl;
 
 
         
@@ -96,9 +136,12 @@ Mat_<double> L1Regularization(const Mat_<double>& pairwise_weight,
         b_1 = b_1 + temp_1 - d_1;
         b_2 = b_2 + temp_2 - d_2;
 
-		// calculate current objective function value and output
-		double obj_value = sum(abs(temp_1))[0] + sum(abs(temp_2))[0] + lambda * pow(norm(curr_reflectance - intensity),2.0);
-		cout<<obj_value<<endl;
+        // calculate current objective function value and output
+        double part_1 = sum(abs(temp_1))[0];
+        double part_2 = sum(abs(temp_2))[0];
+        double part_3 = lambda * pow(norm(curr_reflectance - intensity),2.0);
+        double obj_value = part_1 + part_2 + part_3;
+        cout<<obj_value<<" "<<part_1<<" "<<part_2<<" "<<part_3<<endl;
     } 
     
     return curr_reflectance;
@@ -220,6 +263,9 @@ Mat_<double> ShadingSmooth(const Mat_<double>& reflectance,
     }
     return new_ratio;
 } 
+
+
+
 
 
 #endif

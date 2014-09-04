@@ -25,7 +25,8 @@ int main(){
     int num_css; 
     printf("Segment image...\n");
     CVImage segment_result;
-    vector<ReflectanceCluster> clusters = GetReflectanceCluster(input, sigma, k, min_size, &num_css, segment_result);
+    Mat_<int> pixel_label;
+    vector<ReflectanceCluster> clusters = GetReflectanceCluster(input, sigma, k, min_size, &num_css, segment_result, pixel_label);
     cout<<"Number of clusters: "<<num_css<<endl;
     //imshow("Segment result", segment_result);
     // waitKey(0);
@@ -59,7 +60,7 @@ int main(){
 
 	reflectance = intensity.clone();
 	
-    reflectance = L1Regularization(pairwise_weight, reflectance, intensity, alpha, mu, lambda, iteration_num);
+    reflectance = L1Regularization(pairwise_weight, reflectance, intensity, pixel_label, alpha, mu, lambda, iteration_num);
 
 	/*
     for(int i = 0;i < 100;i++){

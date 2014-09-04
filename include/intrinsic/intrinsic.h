@@ -102,15 +102,18 @@ class ReflectanceCluster{
  * c: constant for treshold function.
  * min_size: minimum component size (enforced by post-processing stage).
  * num_ccs: number of connected components in the segmentation.
+ * pixel_label: the label for each pixel, pixels in the same cluster have the same label
  */
 vector<ReflectanceCluster> GetReflectanceCluster(image<rgb> *im, float sigma, float c, int min_size,
-        int *num_ccs, CVImage& output) {
+        int *num_ccs, CVImage& output, Mat_<int>& pixel_label) {
     int width = im->width();
     int height = im->height();
 
     image<float> *r = new image<float>(width, height);
     image<float> *g = new image<float>(width, height);
     image<float> *b = new image<float>(width, height);
+
+    pixel_label = Mat_<int>(height,width);
 
     // smooth each color channel  
     for (int y = 0; y < height; y++) {
@@ -213,6 +216,7 @@ vector<ReflectanceCluster> GetReflectanceCluster(image<rgb> *im, float sigma, fl
             output(y,x)[0] = colors[comp].b;
             output(y,x)[1] = colors[comp].g;
             output(y,x)[2] = colors[comp].r;
+            pixel_label(x,y) = comp;
         }
     }  
 
