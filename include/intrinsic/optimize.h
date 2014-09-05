@@ -46,7 +46,7 @@ Mat_<double> L1Regularization(const Mat_<double>& log_image,
                               const CVImage& original_image,
                               const Mat_<double>& I,
                               const Mat_<int>& pixel_label,
-                              const vector<ReflectanceCluster>& clusters,
+                              vector<ReflectanceCluster>& clusters,
                               double alpha,
                               double mu,
                               double lambda,
@@ -61,7 +61,7 @@ Mat_<double> L1Regularization(const Mat_<double>& log_image,
     
     // construct the matrix for global entropy
     cout<<"Solve reflectance..."<<endl;
-    int cluster_num = pairwise_weight.rows;
+    int cluster_num = A.rows;
     Mat_<double> B(cluster_num*(cluster_num+1)/2, cluster_num); 
     int count = 0;
     for(int i = 0;i < cluster_num;i++){
@@ -137,8 +137,8 @@ Mat_<double> L1Regularization(const Mat_<double>& log_image,
                                 lambda * B.t() * (d_2 - b_2) - beta * D.t() * C + average_reflectance * theta * E.t(); 
         solve(left_hand,right_hand,curr_reflectance);
         
-        Mat_<double> temp_1 = pairwise_weight * curr_reflectance;
-        Mat_<double> temp_2 = global_sparsity_matrix * curr_reflectance;
+        Mat_<double> temp_1 = A * curr_reflectance;
+        Mat_<double> temp_2 = B * curr_reflectance;
         
         // update d_1 and d_2
         d_1 = Shrink(temp_1 + b_1, 1.0 / lambda);
@@ -150,9 +150,9 @@ Mat_<double> L1Regularization(const Mat_<double>& log_image,
         // calculate current objective function value and output
         double part_1 = sum(abs(temp_1))[0];
         double part_2 = sum(abs(temp_2))[0];
-        double part_3 = lambda / 2 * pow(norm(curr_reflectance - intensity),2.0)
-        double part_4 = beta / 2 * pow(norm(C * curr_reflectance + D), 2.0);
-        double part_5 = theta / 2 * pow(E * curr_reflectance - 0.5,2.0);
+        double part_3 = lambda / 2.0 * pow(norm(curr_reflectance - I),2.0);
+        double part_4 = beta / 2.0 * pow(norm(C * curr_reflectance + D), 2.0);
+		double part_5 = theta / 2.0 * pow(E.dot(curr_reflectance) - 0.5,2.0);
         double obj_value = part_1 + part_2 + part_3 + part_4 + part_5;
         cout<<obj_value<<" "<<part_1<<" "<<part_2<<" "<<part_3<<" "<<part_4<<" "<<part_5<<endl;
     } 
