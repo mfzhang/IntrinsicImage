@@ -105,19 +105,15 @@ Mat_<double> L1Regularization(const Mat_<double>& log_image,
     }
 
     // average reflectance is set to 0.5
-    double average_reflectance = 0.5;
+    double average_reflectance = 7;
     Mat_<double> E(1,cluster_num);
     double cluster_total_size = 0;
-    for(int i = 0;i < clusters.size();i++){
+	for(int i = 0;i < cluster_num;i++){
         int temp = clusters[i].GetClusterSize();
         E(0,i) = temp; 
         cluster_total_size += temp;
     }
-    E = 1.0 / cluster_total_size * E;
-
-
-
-
+    E = (1.0 / cluster_total_size) * E;
 
     Mat_<double> identity_matrix = Mat::eye(cluster_num,cluster_num, CV_64FC1); 
     Mat_<double> left_hand = mu * identity_matrix + lambda * (A.t() * A)
@@ -131,8 +127,8 @@ Mat_<double> L1Regularization(const Mat_<double>& log_image,
    
     for(int i = 0;i < iteration_num;i++){
         cout<<"Iter: "<<i<<endl;
+
         // solve for new reflectance
-    
         Mat_<double> right_hand = mu * I + lambda * A.t() * (d_1 - b_1) + 
                                 lambda * B.t() * (d_2 - b_2) - beta * D.t() * C + average_reflectance * theta * E.t(); 
         solve(left_hand,right_hand,curr_reflectance);
@@ -151,8 +147,8 @@ Mat_<double> L1Regularization(const Mat_<double>& log_image,
         double part_1 = sum(abs(temp_1))[0];
         double part_2 = sum(abs(temp_2))[0];
         double part_3 = lambda / 2.0 * pow(norm(curr_reflectance - I),2.0);
-        double part_4 = beta / 2.0 * pow(norm(C * curr_reflectance + D), 2.0);
-		double part_5 = theta / 2.0 * pow(E.dot(curr_reflectance) - 0.5,2.0);
+        double part_4 = beta / 2.0 * pow(norm(D * curr_reflectance + C), 2.0);
+		double part_5 = theta / 2.0 * pow(E.t().dot(curr_reflectance) - 0.5,2.0);
         double obj_value = part_1 + part_2 + part_3 + part_4 + part_5;
         cout<<obj_value<<" "<<part_1<<" "<<part_2<<" "<<part_3<<" "<<part_4<<" "<<part_5<<endl;
     } 

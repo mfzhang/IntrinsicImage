@@ -48,10 +48,10 @@ int main(){
     // Solve reflectance
     double alpha = 0.01;
     double mu = 10;
-    int iteration_num = 80;
+    int iteration_num = 100;
     double lambda = 2 * mu;
     double beta = 1;
-    double theta = 1000;
+    double theta = 1e7;
     Mat_<double> reflectance;
 	Mat_<double> intensity(num_css,1);
 	for(int i = 0;i < num_css;i++){
@@ -66,6 +66,19 @@ int main(){
     reflectance = intensity.clone();
     reflectance = L1Regularization(log_image, original_image, intensity, pixel_label, clusters, alpha, mu, lambda, beta, theta, iteration_num);
 	cout<<reflectance<<endl;
+
+	Mat_<uchar> reflectance_image(image_height, image_width);
+	for(int i = 0; i < image_height; ++i){
+		for(int j = 0;j < image_width; ++j){
+			int label = pixel_label(i,j);
+			int temp = pow(2.0,reflectance(label));
+			if(temp > 255){
+				temp = 255;
+			}
+			reflectance_image(i,j) = (uchar)temp;
+		}
+	}
+	imshow("Result", reflectance_image);
 	waitKey(0);
     cout<<endl;
     return 0;
