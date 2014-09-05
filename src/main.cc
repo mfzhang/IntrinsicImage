@@ -5,6 +5,7 @@
 
 #include "../include/intrinsic/intrinsic.h"
 #include "../include/intrinsic/optimize.h"
+#include <algorithm>
 
 int main(){
     string original_image_path = "C:\\Users\\BiSai\\Desktop\\baby.tif";    
@@ -29,7 +30,7 @@ int main(){
     Mat_<int> pixel_label;
     vector<ReflectanceCluster> clusters = GetReflectanceCluster(input, sigma, k, min_size, &num_css, segment_result, pixel_label);
     cout<<"Number of clusters: "<<num_css<<endl;
-    // imshow("Segment result", segment_result);
+    imshow("Segment result", segment_result);
     // waitKey(0);
     
     // Get pairwise weight of clusters
@@ -41,17 +42,21 @@ int main(){
     for(int i = 0;i < image_height;i++){
         for(int j = 0;j < image_width;j++){
             // prevent log(0)
-            log_image(i,j) = log(original_image_gray(i,j) + 1); 
-        }
+            // log_image(i,j) = log(original_image_gray(i,j) + 1); 
+			// use red channel
+			log_image(i,j) = log(original_image(i,j)[2] + 1);
+		}
     }
-     
+
+    
     // Solve reflectance
-    double alpha = 0.01;
-    double mu = 10;
+	double gamma = 10;
+    double alpha = 0.1;
+    double mu = 100;
     int iteration_num = 100;
-    double lambda = 2 * mu;
-    double beta = 1;
-    double theta = 1e7;
+    double lambda = 1;
+    double beta = 10;
+    double theta = 10000;
     Mat_<double> reflectance;
 	Mat_<double> intensity(num_css,1);
 	for(int i = 0;i < num_css;i++){
@@ -63,19 +68,23 @@ int main(){
         intensity(i,0) = temp / cluster_pixels.size();
     }
 
-    reflectance = intensity.clone();
-    reflectance = L1Regularization(log_image, original_image, intensity, pixel_label, clusters, alpha, mu, lambda, beta, theta, iteration_num);
-	cout<<reflectance<<endl;
+	// cout<<*max_element(intensity.begin(),intensity.end());
+	
 
-	Mat_<uchar> reflectance_image(image_height, image_width);
+    reflectance = intensity.clone();
+    reflectance = L1Regularization(log_image, original_image, intensity, pixel_label, clusters, gamma, alpha, mu, lambda, beta, theta, iteration_num);
+
+	Mat_<Vec3b> reflectance_image(image_height, image_width, Vec3b(0,0,0));
 	for(int i = 0; i < image_height; ++i){
 		for(int j = 0;j < image_width; ++j){
 			int label = pixel_label(i,j);
-			int temp = pow(2.0,reflectance(label));
+			int temp = exp(reflectance(label));
 			if(temp > 255){
 				temp = 255;
 			}
-			reflectance_image(i,j) = (uchar)temp;
+			reflectance_image(i,j)[2] = (uchar)temp;
+			reflectance_image(i,j)[1] = (uchar)(temp * original_image(i,j)[1] / (double)original_image(i,j)[2]);
+			reflectance_image(i,j)[0] = (uchar)(temp * original_image(i,j)[0] / (double)original_image(i,j)[2]);
 		}
 	}
 	imshow("Result", reflectance_image);

@@ -194,14 +194,15 @@ vector<ReflectanceCluster> GetReflectanceCluster(image<rgb> *im, float sigma, fl
             int comp = u->find(y * width + x);
             if(index.count(comp) > 0){
                 int temp = index[comp];
-                result[temp].AddPixel(Point2i(x,y));
-                pixel_label(x,y) = temp;           
+                result[temp].AddPixel(Point2i(y,x));
+                pixel_label(y,x) = temp;           
             }
             else{
                 index[comp] = count;
+				pixel_label(y,x) = count;
                 count++;
                 ReflectanceCluster new_cluster;
-                new_cluster.AddPixel(Point2i(x,y)); 
+                new_cluster.AddPixel(Point2i(y,x)); 
                 result.push_back(new_cluster);
             }
         }
