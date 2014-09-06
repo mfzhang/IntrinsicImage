@@ -278,7 +278,44 @@ Mat_<double> ShadingSmooth(const Mat_<double>& reflectance,
 } 
 
 
+Mat_<double> GetReflectance(vector<ReflectanceCluster>& clusters, const CVImage& image, const Mat_<int>& pixel_label, int channel){
+    cout<<"Initialize reflectance..."<<endl;
+    // Initial reflectance to log(intensity) 
+	int image_height = image.rows;
+	int image_width = image.cols;
+	int num_css = clusters.size();
 
+    Mat_<double> log_image(image_height,image_width,0.0);
+    for(int i = 0;i < image_height;i++){
+        for(int j = 0;j < image_width;j++){
+            // prevent log(0)
+            log_image(i,j) = log(image(i,j)[channel] + 1); 
+        }
+    }
+
+    double gamma = 10;
+    double alpha = 0.1;
+    double mu = 100;
+    int iteration_num = 100;
+    double lambda = 1;
+    double beta = 10;
+    double theta = 10000;
+    Mat_<double> reflectance;
+    Mat_<double> intensity(num_css,1);
+    for(int i = 0;i < num_css;i++){
+        double temp = 0;
+        vector<Point2i> cluster_pixels = clusters[i].GetPixelLocations();
+        for(int j = 0;j < cluster_pixels.size();j++){
+            temp = temp + log_image(cluster_pixels[j].x, cluster_pixels[j].y);                
+        }
+        intensity(i,0) = temp / cluster_pixels.size();
+    }
+
+    reflectance = intensity.clone();
+    reflectance = L1Regularization(log_image, image, intensity, pixel_label, clusters, gamma, alpha, mu, lambda, beta, theta, iteration_num);
+
+    return reflectance;
+}
 
 
 #endif
