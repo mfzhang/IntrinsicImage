@@ -130,7 +130,7 @@ Mat_<double> L1Regularization(const Mat_<double>& log_image,
 
     // average reflectance is set to 0.5
 	// double average_reflectance = sum(I)[0] / (double)cluster_num;
-    double average_reflectance = 7.0;
+    double average_reflectance = 4.0;
 	Mat_<double> E(1,cluster_num);
     double cluster_total_size = 0;
 	for(int i = 0;i < cluster_num;i++){
@@ -142,7 +142,7 @@ Mat_<double> L1Regularization(const Mat_<double>& log_image,
 
     Mat_<double> identity_matrix = Mat::eye(cluster_num,cluster_num, CV_64FC1); 
     Mat_<double> left_hand = mu * identity_matrix + lambda * (A.t() * A)
-                                + lambda * BTB + beta * D.t() * D ; // + theta * (E.t() * E);
+                                + lambda * BTB + beta * D.t() * D  + theta * (E.t() * E);
 
     Mat_<double> curr_reflectance = I.clone();
     Mat_<double> d_1(A.rows,1,0.0);
@@ -157,13 +157,13 @@ Mat_<double> L1Regularization(const Mat_<double>& log_image,
         Mat_<double> temp_3(cluster_num,1);
         Mat_<double> temp_4 = d_2 - b_2;
         for(int j = 0;j < cluster_num; ++j){
-            temp_3(j) = b_columns[i].dot(temp_4);
+            temp_3(j) = b_columns[j].dot(temp_4);
         }
 
         // Mat_<double> right_hand = mu * I + lambda * A.t() * (d_1 - b_1) + 
         //                        lambda * B.t() * (d_2 - b_2) - beta * D.t() * C; // + average_reflectance * theta * E.t(); 
         Mat_<double> right_hand = mu * I + lambda * A.t() * (d_1 - b_1) + 
-                                lambda * temp_3 - beta * D.t() * C; 
+			lambda * temp_3 - beta * D.t() * C + average_reflectance * theta * E.t();  
                                 
         solve(left_hand,right_hand,curr_reflectance);
         
@@ -172,7 +172,7 @@ Mat_<double> L1Regularization(const Mat_<double>& log_image,
         Mat_<double> temp_2(b_row_num,1,0.0);
         int count = 0;
         for(int j = 0;j < cluster_num; ++j){
-            for(int k = j + 1; k < cluster_num; k++){
+            for(int k = j + 1; k < cluster_num; ++k){
                 temp_2(count,0) = alpha / 2.0 * (curr_reflectance(j) - curr_reflectance(k));
                 count++;
             }
@@ -189,12 +189,12 @@ Mat_<double> L1Regularization(const Mat_<double>& log_image,
         // calculate current objective function value and output
         double part_1 = sum(abs(temp_1))[0];
         double part_2 = sum(abs(temp_2))[0];
-        double part_3 = lambda / 2.0 * pow(norm(curr_reflectance - I),2.0);
-        double part_4 = beta / 2.0 * pow(norm(D * curr_reflectance + C), 2.0);
-		// double part_5 = theta / 2.0 * pow(E.t().dot(curr_reflectance) - 0.5,2.0);
-        double obj_value = part_1 + part_2 + part_3 + part_4; // + part_5;
-        // cout<<obj_value<<" "<<part_1<<" "<<part_2<<" "<<part_3<<" "<<part_4<<" "<<part_5<<endl;
-		cout<<obj_value<<" "<<part_1<<" "<<part_2<<" "<<part_3<<" "<<part_4<<endl;
+        double part_3 = pow(norm(curr_reflectance - I),2.0);
+        double part_4 = pow(norm(D * curr_reflectance + C), 2.0);
+		double part_5 = pow(E.t().dot(curr_reflectance) - 0.5,2.0);
+        double obj_value = part_1 + part_2 + part_3 + part_4 + part_5;
+        cout<<obj_value<<" "<<part_1<<" "<<part_2<<" "<<part_3<<" "<<part_4<<" "<<part_5<<endl;
+		// cout<<obj_value<<" "<<part_1<<" "<<part_2<<" "<<part_3<<" "<<part_4<<endl;
     } 
     
     return curr_reflectance;
