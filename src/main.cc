@@ -35,6 +35,7 @@ int main(){
     Mat_<double> r_reflectance = GetReflectance(clusters, original_image, pixel_label, 2);
     Mat_<double> g_reflectance = GetReflectance(clusters, original_image, pixel_label, 1);
     Mat_<double> b_reflectance = GetReflectance(clusters, original_image, pixel_label, 0);
+    cout<<"Initialize reflectance..."<<endl;
 
 	
 	Mat_<Vec3b> reflectance_image(image_height, image_width, Vec3b(0,0,0));
@@ -64,7 +65,6 @@ int main(){
     cout<<"Number of different values of G: "<<g_different_value.size()<<endl;
     cout<<"Number of different values of B: "<<b_different_value.size()<<endl;
 	
- 
 	imshow("Result", reflectance_image);
 	waitKey(0);
     cout<<endl;
