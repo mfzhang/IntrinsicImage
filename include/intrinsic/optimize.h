@@ -64,6 +64,7 @@ Mat_<double> L1Regularization(const Mat_<double>& log_image,
     // construct the matrix for global entropy
     cout<<"Solve reflectance..."<<endl;
     int cluster_num = A.rows;
+	/*
     Mat_<double> B(cluster_num*(cluster_num+1)/2, cluster_num); 
     int count = 0;
     for(int i = 0;i < cluster_num;i++){
@@ -73,6 +74,27 @@ Mat_<double> L1Regularization(const Mat_<double>& log_image,
             count++;
         }
     }
+	*/
+    int b_row_num = (cluster_num*(cluster_num+1))/2;
+    vector<Mat_<double> > b_columns(cluster_num, Mat_<double>(b_row_num,1,0.0));
+    int count = 0;
+    for(int i = 0;i < cluster_num;i++){
+        for(int j = i+1;j < cluster_num;j++){
+            b_columns[i](count,0) = alpha / 2.0;
+            b_columns[j](count,0) = - alpha / 2.0;
+            count++;
+        }
+    }
+
+    // calculate B^T B
+    Mat_<double> BTB(cluster_num, cluster_num, 0.0);
+    for(int i = 0; i < cluster_num; ++i){
+        for(int j = 0; j < cluster_num; ++j){
+            BTB(i,j) = b_columns[i].dot(b_columns[j]);
+        }
+    }
+
+
 
     // shading smooth part
     vector<Point2i> pixel_pairs_1;
@@ -120,25 +142,43 @@ Mat_<double> L1Regularization(const Mat_<double>& log_image,
 
     Mat_<double> identity_matrix = Mat::eye(cluster_num,cluster_num, CV_64FC1); 
     Mat_<double> left_hand = mu * identity_matrix + lambda * (A.t() * A)
-                                + lambda * (B.t() * B) + beta * D.t() * D ; // + theta * (E.t() * E);
+                                + lambda * BTB + beta * D.t() * D ; // + theta * (E.t() * E);
 
     Mat_<double> curr_reflectance = I.clone();
     Mat_<double> d_1(A.rows,1,0.0);
-    Mat_<double> d_2(B.rows,1,0.0);
+	Mat_<double> d_2(b_row_num,1,0.0);
     Mat_<double> b_1(A.rows,1,0.0);
-    Mat_<double> b_2(B.rows,1,0.0);
+    Mat_<double> b_2(b_row_num,1,0.0);
    
     for(int i = 0;i < iteration_num;i++){
         cout<<"Iter: "<<i<<endl;
 
         // solve for new reflectance
+        Mat_<double> temp_3(cluster_num,1);
+        Mat_<double> temp_4 = d_2 - b_2;
+        for(int j = 0;j < cluster_num; ++j){
+            temp_3(j) = b_columns[i].dot(temp_4);
+        }
+
+        // Mat_<double> right_hand = mu * I + lambda * A.t() * (d_1 - b_1) + 
+        //                        lambda * B.t() * (d_2 - b_2) - beta * D.t() * C; // + average_reflectance * theta * E.t(); 
         Mat_<double> right_hand = mu * I + lambda * A.t() * (d_1 - b_1) + 
-                                lambda * B.t() * (d_2 - b_2) - beta * D.t() * C; // + average_reflectance * theta * E.t(); 
+                                lambda * temp_3 - beta * D.t() * C; 
+                                
         solve(left_hand,right_hand,curr_reflectance);
         
         Mat_<double> temp_1 = A * curr_reflectance;
-        Mat_<double> temp_2 = B * curr_reflectance;
-        
+        //Mat_<double> temp_2 = B * curr_reflectance;
+        Mat_<double> temp_2(b_row_num,1,0.0);
+        int count = 0;
+        for(int j = 0;j < cluster_num; ++j){
+            for(int k = j + 1; k < cluster_num; k++){
+                temp_2(count,0) = alpha / 2.0 * (curr_reflectance(j) - curr_reflectance(k));
+                count++;
+            }
+        }
+
+
         // update d_1 and d_2
         d_1 = Shrink(temp_1 + b_1, 1.0 / lambda);
         d_2 = Shrink(temp_2 + b_2, 1.0 / lambda); 
