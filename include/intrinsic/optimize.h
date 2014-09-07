@@ -79,8 +79,6 @@ Mat_<double> L1Regularization(const Mat_<double>& log_image,
         }
     }
 	
-	
-    int b_row_num = (cluster_num*(cluster_num+1))/2;
     /*
 	vector<Mat_<double> > b_columns(cluster_num, Mat_<double>(b_row_num,1,0.0));
     int count = 0;
@@ -118,6 +116,8 @@ Mat_<double> L1Regularization(const Mat_<double>& log_image,
             }
         }
     }
+
+	cout<<"pixel pair: "<<pixel_pairs_1.size()<<endl;
 
     int pair_num = pixel_pairs_1.size();    
     Mat_<double> D(pair_num,cluster_num,0.0);
@@ -232,12 +232,12 @@ Mat_<double> GetReflectance(vector<ReflectanceCluster>& clusters, const CVImage&
         }
     }
 
-    double gamma = 200;
-    double alpha = 10;
+    double gamma = 10;
+    double alpha = 4;
     double mu = 100;
-    int iteration_num = 300;
+    int iteration_num = 100;
     double lambda = 1;
-    double beta = 100;
+    double beta = 3000;
     double theta = 1000000;
     Mat_<double> reflectance;
     Mat_<double> intensity(num_css,1);
