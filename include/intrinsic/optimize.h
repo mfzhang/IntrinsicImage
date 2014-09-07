@@ -59,12 +59,16 @@ Mat_<double> L1Regularization(const Mat_<double>& log_image,
 
     // calculate the weight between each pair of clusters
     Mat_<double> A = GetPairwiseWeight(clusters,original_image);
+
+	cout<<*max_element(A.begin(), A.end())<<endl;
+	cout<<*min_element(A.begin(), A.end())<<endl;
+	
 	A = gamma * A;
     
     // construct the matrix for global entropy
     cout<<"Solve reflectance..."<<endl;
     int cluster_num = A.rows;
-	/*
+	
     Mat_<double> B(cluster_num*(cluster_num+1)/2, cluster_num); 
     int count = 0;
     for(int i = 0;i < cluster_num;i++){
@@ -74,9 +78,11 @@ Mat_<double> L1Regularization(const Mat_<double>& log_image,
             count++;
         }
     }
-	*/
+	
+	
     int b_row_num = (cluster_num*(cluster_num+1))/2;
-    vector<Mat_<double> > b_columns(cluster_num, Mat_<double>(b_row_num,1,0.0));
+    /*
+	vector<Mat_<double> > b_columns(cluster_num, Mat_<double>(b_row_num,1,0.0));
     int count = 0;
     for(int i = 0;i < cluster_num;i++){
         for(int j = i+1;j < cluster_num;j++){
@@ -93,6 +99,7 @@ Mat_<double> L1Regularization(const Mat_<double>& log_image,
             BTB(i,j) = b_columns[i].dot(b_columns[j]);
         }
     }
+	*/
 
 
 
@@ -130,7 +137,7 @@ Mat_<double> L1Regularization(const Mat_<double>& log_image,
 
     // average reflectance is set to 0.5
 	// double average_reflectance = sum(I)[0] / (double)cluster_num;
-    double average_reflectance = 4.0;
+    double average_reflectance = 7;
 	Mat_<double> E(1,cluster_num);
     double cluster_total_size = 0;
 	for(int i = 0;i < cluster_num;i++){
@@ -142,7 +149,7 @@ Mat_<double> L1Regularization(const Mat_<double>& log_image,
 
     Mat_<double> identity_matrix = Mat::eye(cluster_num,cluster_num, CV_64FC1); 
     Mat_<double> left_hand = mu * identity_matrix + lambda * (A.t() * A)
-                                + lambda * BTB + beta * D.t() * D  + theta * (E.t() * E);
+                                + lambda * B.t() * B + beta * D.t() * D  + theta * (E.t() * E);
 
     Mat_<double> curr_reflectance = I.clone();
     Mat_<double> d_1(A.rows,1,0.0);
@@ -154,21 +161,24 @@ Mat_<double> L1Regularization(const Mat_<double>& log_image,
         cout<<"Iter: "<<i<<endl;
 
         // solve for new reflectance
+		/*
         Mat_<double> temp_3(cluster_num,1);
         Mat_<double> temp_4 = d_2 - b_2;
         for(int j = 0;j < cluster_num; ++j){
             temp_3(j) = b_columns[j].dot(temp_4);
         }
+		*/
 
-        // Mat_<double> right_hand = mu * I + lambda * A.t() * (d_1 - b_1) + 
-        //                        lambda * B.t() * (d_2 - b_2) - beta * D.t() * C; // + average_reflectance * theta * E.t(); 
         Mat_<double> right_hand = mu * I + lambda * A.t() * (d_1 - b_1) + 
-			lambda * temp_3 - beta * D.t() * C + average_reflectance * theta * E.t();  
+                                lambda * B.t() * (d_2 - b_2) - beta * D.t() * C + average_reflectance * theta * E.t(); 
+        // Mat_<double> right_hand = mu * I + lambda * A.t() * (d_1 - b_1) + 
+		//	lambda * temp_3 - beta * D.t() * C + average_reflectance * theta * E.t();  
                                 
         solve(left_hand,right_hand,curr_reflectance);
         
         Mat_<double> temp_1 = A * curr_reflectance;
-        //Mat_<double> temp_2 = B * curr_reflectance;
+        Mat_<double> temp_2 = B * curr_reflectance;
+		/*
         Mat_<double> temp_2(b_row_num,1,0.0);
         int count = 0;
         for(int j = 0;j < cluster_num; ++j){
@@ -177,6 +187,7 @@ Mat_<double> L1Regularization(const Mat_<double>& log_image,
                 count++;
             }
         }
+		*/
 
 
         // update d_1 and d_2
@@ -192,130 +203,13 @@ Mat_<double> L1Regularization(const Mat_<double>& log_image,
         double part_3 = pow(norm(curr_reflectance - I),2.0);
         double part_4 = pow(norm(D * curr_reflectance + C), 2.0);
 		double part_5 = pow(E.t().dot(curr_reflectance) - 0.5,2.0);
-        double obj_value = part_1 + part_2 + part_3 + part_4 + part_5;
+        double obj_value = part_1 + part_2 + mu * part_3 + beta * part_4 + theta * part_5;
         cout<<obj_value<<" "<<part_1<<" "<<part_2<<" "<<part_3<<" "<<part_4<<" "<<part_5<<endl;
 		// cout<<obj_value<<" "<<part_1<<" "<<part_2<<" "<<part_3<<" "<<part_4<<endl;
     } 
     
     return curr_reflectance;
 }
-
-/*
- * Given an image, and its reflectance, enforce shading smooth.
- * This can be solved by "Iteratively Reweighted Least Square"
- */
-Mat_<double> ShadingSmooth(const Mat_<double>& reflectance,
-                           const Mat_<double>& log_image){
-    int image_width = log_image.cols;
-    int image_height = log_image.rows;
-    Mat_<double> new_ratio(image_height,image_width,1.0);
-    Mat_<double> old_ratio(image_height,image_width,0.0);
-    int lambda = 10;
-    double step_size = 0.01; // initial step size for gradient descent
-    double precision = 1.0e-7;
-    
-    while(true){
-        pow(new_ratio - old_ratio, 2.0, old_ratio);
-        if(sum(old_ratio)[0] < precision){
-            break;
-        } 
-        old_ratio = new_ratio.clone();
-        // get laplacian result on current shading 
-        Mat_<double> shading = log_image - reflectance.mul(new_ratio);  
-        Laplacian(shading,shading,1);
-        double penalty_part = sum(old_ratio)[0] - image_height * image_width;
-        // center pixels
-        for(int i = 1;i < image_height-1;i++){
-            for(int j = 1;j < image_width - 1;j++){
-                new_ratio(i,j) = new_ratio(i,j) - step_size * (8 * shading(i,j) * reflectance(i,j)
-                    - 2 * reflectance(i,j) * shading(i,j-1) 
-                    - 2 * reflectance(i,j) * shading(i,j+1)
-                    - 2 * reflectance(i,j) * shading(i-1,j)
-                    - 2 * reflectance(i,j) * shading(i+1,j)
-                    + 2 * penalty_part); 
-            }
-        }
-        // for first row pixels 
-        for(int i = 0;i < 1;i++){
-            for(int j = 1;j < image_width - 1;j++){
-                new_ratio(i,j) = new_ratio(i,j) - step_size * (6 * shading(i,j) * reflectance(i,j)
-                    - 2 * reflectance(i,j) * shading(i,j-1) 
-                    - 2 * reflectance(i,j) * shading(i,j+1)
-                    - 2 * reflectance(i,j) * shading(i+1,j)
-                    + 2 * penalty_part); 
-            }
-        }
-        // for last row pixels
-        for(int i = image_width-1;i < image_width;i++){
-            for(int j = 1;j < image_width - 1;j++){
-                new_ratio(i,j) = new_ratio(i,j) - step_size * (6 * shading(i,j) * reflectance(i,j)
-                    - 2 * reflectance(i,j) * shading(i,j-1) 
-                    - 2 * reflectance(i,j) * shading(i,j+1)
-                    - 2 * reflectance(i,j) * shading(i-1,j)
-                    + 2 * penalty_part); 
-            }
-        }
-        // for first column pixels
-        for(int i = 1;i < image_height-1;i++){
-            for(int j = 0;j < 1;j++){
-                new_ratio(i,j) = new_ratio(i,j) - step_size * (6 * shading(i,j) * reflectance(i,j)
-                    - 2 * reflectance(i,j) * shading(i,j+1)
-                    - 2 * reflectance(i,j) * shading(i-1,j)
-                    - 2 * reflectance(i,j) * shading(i+1,j)
-                    + 2 * penalty_part); 
-            }
-        }
-        // for last column pixels
-        for(int i = 1;i < image_height-1;i++){
-            for(int j = image_width - 1;j < image_width;j++){
-                new_ratio(i,j) = new_ratio(i,j) - step_size * (6 * shading(i,j) * reflectance(i,j)
-                        - 2 * reflectance(i,j) * shading(i,j-1)
-                        - 2 * reflectance(i,j) * shading(i-1,j)
-                        - 2 * reflectance(i,j) * shading(i+1,j)
-                        + 2 * penalty_part); 
-            }
-        }
-        // corner pixels
-        int i = 0; int j = 0; 
-        new_ratio(i,j) = new_ratio(i,j) - step_size * (4 * shading(i,j) * reflectance(i,j)
-                - 2 * reflectance(i,j) * shading(i,j+1)
-                - 2 * reflectance(i,j) * shading(i+1,j)
-                + 2 * penalty_part); 
-        i = image_height - 1; j = 0;
-        new_ratio(i,j) = new_ratio(i,j) - step_size * (4 * shading(i,j) * reflectance(i,j)
-                - 2 * reflectance(i,j) * shading(i-1,j)
-                - 2 * reflectance(i,j) * shading(i,j+1)
-                + 2 * penalty_part);
-        i = image_height - 1; j = image_width-1;
-        new_ratio(i,j) = new_ratio(i,j) - step_size * (4 * shading(i,j) * reflectance(i,j)
-                - 2 * reflectance(i,j) * shading(i-1,j)
-                - 2 * reflectance(i,j) * shading(i,j-1)
-                + 2 * penalty_part);
-        i = 0; j = image_width-1;
-        new_ratio(i,j) = new_ratio(i,j) - step_size * (4 * shading(i,j) * reflectance(i,j)
-                - 2 * reflectance(i,j) * shading(i,j-1)
-                - 2 * reflectance(i,j) * shading(i+1,j)
-                + 2 * penalty_part);
-    
-        // calculate objective function
-        Mat_<double> new_shading = log_image - reflectance.mul(new_ratio);
-        Laplacian(new_shading,new_shading,1);
-        pow(new_shading,2.0,new_shading);
-        double new_objective_value = sum(new_shading)[0] + lambda * 
-                pow((sum(new_ratio)[0] - image_width * image_height),2.0);
-        pow(shading,2.0,shading);
-        double objective_value = sum(shading)[0] + lambda * pow(penalty_part,2.0);
-        
-        if(new_objective_value < objective_value){
-            step_size = 2 * step_size; 
-        } 
-        else{
-            new_ratio = old_ratio;
-            step_size = step_size / 2.0;
-        }
-    }
-    return new_ratio;
-} 
 
 
 Mat_<double> GetReflectance(vector<ReflectanceCluster>& clusters, const CVImage& image, const Mat_<int>& pixel_label, int channel){
@@ -333,12 +227,12 @@ Mat_<double> GetReflectance(vector<ReflectanceCluster>& clusters, const CVImage&
         }
     }
 
-    double gamma = 10;
+    double gamma = 1000;
     double alpha = 0.1;
     double mu = 100;
     int iteration_num = 100;
     double lambda = 1;
-    double beta = 10;
+    double beta = 1;
     double theta = 10000;
     Mat_<double> reflectance;
     Mat_<double> intensity(num_css,1);

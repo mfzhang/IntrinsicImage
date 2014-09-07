@@ -33,12 +33,13 @@ int main(){
     imshow("Segment result", segment_result);
 
     Mat_<double> r_reflectance = GetReflectance(clusters, original_image, pixel_label, 2);
-    Mat_<double> g_reflectance = GetReflectance(clusters, original_image, pixel_label, 1);
-    Mat_<double> b_reflectance = GetReflectance(clusters, original_image, pixel_label, 0);
+    // Mat_<double> g_reflectance = GetReflectance(clusters, original_image, pixel_label, 1);
+    // Mat_<double> b_reflectance = GetReflectance(clusters, original_image, pixel_label, 0);
     cout<<"Initialize reflectance..."<<endl;
 
 	
 	Mat_<Vec3b> reflectance_image(image_height, image_width, Vec3b(0,0,0));
+	Mat_<uchar> reflectance_r(image_height, image_width, (uchar)0);
 
 	set<int> r_different_value;
     set<int> g_different_value;
@@ -49,23 +50,27 @@ int main(){
 			int label = pixel_label(i,j);
 			int temp = exp(r_reflectance(label));
 			reflectance_image(i,j)[2] = (uchar)temp;
+			reflectance_r(i,j) = (uchar)temp;
             r_different_value.insert(temp);
 
-            temp = exp(g_reflectance(label));
+            /*
+			temp = exp(g_reflectance(label));
             reflectance_image(i,j)[1] = (uchar)temp;
             g_different_value.insert(temp);
             
             temp = exp(b_reflectance(label));
             reflectance_image(i,j)[0] = (uchar)temp;
 			b_different_value.insert(temp);
+			*/
 		}
 	}
 
 	cout<<"Number of different values of R: "<<r_different_value.size()<<endl;
-    cout<<"Number of different values of G: "<<g_different_value.size()<<endl;
-    cout<<"Number of different values of B: "<<b_different_value.size()<<endl;
+    // cout<<"Number of different values of G: "<<g_different_value.size()<<endl;
+    // cout<<"Number of different values of B: "<<b_different_value.size()<<endl;
 	
 	imshow("Result", reflectance_image);
+	imshow("Gray", reflectance_r);
 	waitKey(0);
     cout<<endl;
     return 0;
