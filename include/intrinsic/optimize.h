@@ -151,7 +151,7 @@ Mat_<double> L1Regularization(const Mat_<double>& log_image,
     Mat_<double> init = beta * (D.t() * D)  + theta * (E.t() * E);
 	Mat_<double> left_hand = lambda * (A.t() * A)
                                 + lambda * (B.t() * B) + init;
-	Mat_<double> init_2 = - beta * D.t() * C + average_reflectance * theta * E.t();
+	Mat_<double> init_2 = - beta * D.t() * C  + average_reflectance * theta * E.t();
 
 
     Mat_<double> curr_reflectance;
@@ -208,8 +208,9 @@ Mat_<double> L1Regularization(const Mat_<double>& log_image,
         // double part_3 = pow(norm(curr_reflectance - I),2.0);
         double part_4 = pow(norm(D * curr_reflectance + C), 2.0);
 		double part_5 = pow(E.t().dot(curr_reflectance) - 0.5,2.0);
-        double obj_value = part_1 + part_2  + beta * part_4 + theta * part_5;
-        cout<<obj_value<<" "<<part_1<<" "<<part_2<<" "<<part_4<<" "<<part_5<<endl;
+        double obj_value = part_1 + part_2  + beta * part_4; //  + theta * part_5;
+        // cout<<obj_value<<" "<<part_1<<" "<<part_2<<" "<<part_4<<endl;
+		cout<<obj_value<<" "<<part_1<<" "<<part_2<<" "<<part_4<<" "<<part_5<<endl;
 		// cout<<obj_value<<" "<<part_1<<" "<<part_2<<" "<<part_3<<" "<<part_4<<endl;
     } 
     
@@ -228,17 +229,18 @@ Mat_<double> GetReflectance(vector<ReflectanceCluster>& clusters, const CVImage&
     for(int i = 0;i < image_height;i++){
         for(int j = 0;j < image_width;j++){
             // prevent log(0)
-            log_image(i,j) = log(image(i,j)[channel] + 1); 
+            // log_image(i,j) = log(image(i,j)[channel] + 1); 
+			log_image(i,j) = log((image(i,j)[0] + image(i,j)[1] + image(i,j)[2]) / 3); 
         }
     }
 
-    double gamma = 10;
-    double alpha = 4;
+    double gamma = 100;
+    double alpha = 23;
     double mu = 100;
     int iteration_num = 100;
     double lambda = 1;
-    double beta = 3000;
-    double theta = 1000000;
+    double beta = 30000;
+    double theta = 1000000;	
     Mat_<double> reflectance;
     Mat_<double> intensity(num_css,1);
     for(int i = 0;i < num_css;i++){
