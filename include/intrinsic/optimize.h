@@ -56,26 +56,26 @@ Mat_<double> L1Regularization(const Mat_<double>& log_image,
                               int iteration_num){
     int image_width = log_image.cols;
     int image_height = log_image.rows;
+	int cluster_num = clusters.size();
+	int b_row_num = (cluster_num*(cluster_num+1))/2;
 
     // calculate the weight between each pair of clusters
-    Mat_<double> A = GetPairwiseWeight(clusters,original_image);
+    Mat_<double> pairwise_weight = GetPairwiseWeight(clusters,original_image);
 
-	cout<<*max_element(A.begin(), A.end())<<endl;
-	cout<<*min_element(A.begin(), A.end())<<endl;
-	
-	A = gamma * A;
-    
+	Mat_<double> A(b_row_num, cluster_num, 0.0);
+
     // construct the matrix for global entropy
-    cout<<"Solve reflectance..."<<endl;
-    int cluster_num = A.rows;
+    cout<<"Solve reflectance..."<<endl;	
 	
-    Mat_<double> B(cluster_num*(cluster_num+1)/2, cluster_num); 
+	Mat_<double> B(b_row_num, cluster_num); 
     int count = 0;
     for(int i = 0;i < cluster_num;i++){
         for(int j = i+1;j < cluster_num;j++){
             B(count,i) = alpha / 2;
             B(count,j) = -alpha / 2; 
-            count++;
+			A(count,i) = pairwise_weight(i,j) * gamma;
+			A(count,j) = -pairwise_weight(i,j) * gamma;
+			count++;
         }
     }
 	
@@ -148,10 +148,14 @@ Mat_<double> L1Regularization(const Mat_<double>& log_image,
     E = (1.0 / cluster_total_size) * E;
 
     Mat_<double> identity_matrix = Mat::eye(cluster_num,cluster_num, CV_64FC1); 
-    Mat_<double> left_hand = mu * identity_matrix + lambda * (A.t() * A)
-                                + lambda * B.t() * B + beta * D.t() * D  + theta * (E.t() * E);
+    Mat_<double> init = beta * (D.t() * D)  + theta * (E.t() * E);
+	Mat_<double> left_hand = lambda * (A.t() * A)
+                                + lambda * (B.t() * B) + init;
+	Mat_<double> init_2 = - beta * D.t() * C + average_reflectance * theta * E.t();
 
-    Mat_<double> curr_reflectance = I.clone();
+
+    Mat_<double> curr_reflectance;
+	solve(init, init_2, curr_reflectance);
     Mat_<double> d_1(A.rows,1,0.0);
 	Mat_<double> d_2(b_row_num,1,0.0);
     Mat_<double> b_1(A.rows,1,0.0);
@@ -168,31 +172,32 @@ Mat_<double> L1Regularization(const Mat_<double>& log_image,
             temp_3(j) = b_columns[j].dot(temp_4);
         }
 		*/
+		Mat_<double> temp_1;
+		Mat_<double> temp_2;
 
-        Mat_<double> right_hand = mu * I + lambda * A.t() * (d_1 - b_1) + 
-                                lambda * B.t() * (d_2 - b_2) - beta * D.t() * C + average_reflectance * theta * E.t(); 
-        // Mat_<double> right_hand = mu * I + lambda * A.t() * (d_1 - b_1) + 
-		//	lambda * temp_3 - beta * D.t() * C + average_reflectance * theta * E.t();  
-                                
-        solve(left_hand,right_hand,curr_reflectance);
-        
-        Mat_<double> temp_1 = A * curr_reflectance;
-        Mat_<double> temp_2 = B * curr_reflectance;
-		/*
-        Mat_<double> temp_2(b_row_num,1,0.0);
-        int count = 0;
-        for(int j = 0;j < cluster_num; ++j){
-            for(int k = j + 1; k < cluster_num; ++k){
-                temp_2(count,0) = alpha / 2.0 * (curr_reflectance(j) - curr_reflectance(k));
-                count++;
+        for(int j = 0;j < 1; j++){
+            Mat_<double> right_hand = lambda * A.t() * (d_1 - b_1) + 
+            lambda * B.t() * (d_2 - b_2) - beta * D.t() * C + average_reflectance * theta * E.t(); 
+
+			solve(left_hand,right_hand,curr_reflectance);
+
+            temp_1 = A * curr_reflectance;
+            temp_2 = B * curr_reflectance;
+    		/*
+            Mat_<double> temp_2(b_row_num,1,0.0);
+            int count = 0;
+            for(int j = 0;j < cluster_num; ++j){
+                for(int k = j + 1; k < cluster_num; ++k){
+                    temp_2(count,0) = alpha / 2.0 * (curr_reflectance(j) - curr_reflectance(k));
+                    count++;
+                }
             }
+    		*/
+            // update d_1 and d_2
+            d_1 = Shrink(temp_1 + b_1, 1.0 / lambda);
+            d_2 = Shrink(temp_2 + b_2, 1.0 / lambda); 
         }
-		*/
 
-
-        // update d_1 and d_2
-        d_1 = Shrink(temp_1 + b_1, 1.0 / lambda);
-        d_2 = Shrink(temp_2 + b_2, 1.0 / lambda); 
         // update b_1 and b_2
         b_1 = b_1 + temp_1 - d_1;
         b_2 = b_2 + temp_2 - d_2;
@@ -200,11 +205,11 @@ Mat_<double> L1Regularization(const Mat_<double>& log_image,
         // calculate current objective function value and output
         double part_1 = sum(abs(temp_1))[0];
         double part_2 = sum(abs(temp_2))[0];
-        double part_3 = pow(norm(curr_reflectance - I),2.0);
+        // double part_3 = pow(norm(curr_reflectance - I),2.0);
         double part_4 = pow(norm(D * curr_reflectance + C), 2.0);
 		double part_5 = pow(E.t().dot(curr_reflectance) - 0.5,2.0);
-        double obj_value = part_1 + part_2 + mu * part_3 + beta * part_4 + theta * part_5;
-        cout<<obj_value<<" "<<part_1<<" "<<part_2<<" "<<part_3<<" "<<part_4<<" "<<part_5<<endl;
+        double obj_value = part_1 + part_2  + beta * part_4 + theta * part_5;
+        cout<<obj_value<<" "<<part_1<<" "<<part_2<<" "<<part_4<<" "<<part_5<<endl;
 		// cout<<obj_value<<" "<<part_1<<" "<<part_2<<" "<<part_3<<" "<<part_4<<endl;
     } 
     
@@ -227,13 +232,13 @@ Mat_<double> GetReflectance(vector<ReflectanceCluster>& clusters, const CVImage&
         }
     }
 
-    double gamma = 1000;
-    double alpha = 0.1;
+    double gamma = 200;
+    double alpha = 10;
     double mu = 100;
-    int iteration_num = 100;
+    int iteration_num = 300;
     double lambda = 1;
-    double beta = 1;
-    double theta = 10000;
+    double beta = 100;
+    double theta = 1000000;
     Mat_<double> reflectance;
     Mat_<double> intensity(num_css,1);
     for(int i = 0;i < num_css;i++){

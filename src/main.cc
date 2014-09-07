@@ -62,6 +62,7 @@ int main(){
             reflectance_image(i,j)[0] = (uchar)temp;
 			b_different_value.insert(temp);
 			*/
+			
 		}
 	}
 
@@ -71,6 +72,7 @@ int main(){
 	
 	imshow("Result", reflectance_image);
 	imshow("Gray", reflectance_r);
+	cout<<r_reflectance<<endl;
 	waitKey(0);
     cout<<endl;
     return 0;
