@@ -261,7 +261,7 @@ Mat_<double> GetReflectance(vector<ReflectanceCluster>& clusters, const CVImage&
     double gamma = 2000;
     double alpha = 50;
     double mu = 100;
-    int iteration_num = 400;
+    int iteration_num = 100;
     double lambda = 1;
     double beta = 400;
     double theta = 1000000;	

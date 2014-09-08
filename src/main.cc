@@ -11,8 +11,8 @@ int main(){
     string original_image_path = "C:\\Users\\BiSai\\Desktop\\baby.tif";    
     // parameters
     double sigma = 0; 
-    int k = 300;
-    int min_size = 20;
+    int k = 70;
+    int min_size = 100;
     
     // read image 
     CVImage original_image = imread(original_image_path);
@@ -31,7 +31,7 @@ int main(){
     vector<ReflectanceCluster> clusters = GetReflectanceCluster(input, sigma, k, min_size, &num_css, segment_result, pixel_label);
     cout<<"Number of clusters: "<<num_css<<endl;
     imshow("Segment result", segment_result);
-
+	waitKey(0);
     Mat_<double> r_reflectance = GetReflectance(clusters, original_image, pixel_label, 2);
     // Mat_<double> g_reflectance = GetReflectance(clusters, original_image, pixel_label, 1);
     // Mat_<double> b_reflectance = GetReflectance(clusters, original_image, pixel_label, 0);
