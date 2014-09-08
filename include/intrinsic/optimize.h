@@ -29,7 +29,7 @@ Mat_<double> Shrink(const Mat_<double>& input, double lambda){
     return output;
 }
 
-Mat_<double> MatrixMulti(const vector<Mat_<double> > matrix_columns, const Mat_<double>& A){
+Mat_<double> MatrixMulti(const vector<Mat_<double> >& matrix_columns, const Mat_<double>& A){
     Mat_<double> result(matrix_columns.size(), 1, 0.0);
     for(int i = 0; i < matrix_columns.size(); ++i){
         result(i) = A.dot(matrix_columns[i]);
@@ -37,7 +37,7 @@ Mat_<double> MatrixMulti(const vector<Mat_<double> > matrix_columns, const Mat_<
     return result;
 }
 
-Mat_<double> MatrixMultiRows(const vector<Mat_<double> > matrix_columns, const Mat_<double>& A){
+Mat_<double> MatrixMultiRows(const vector<Mat_<double> >& matrix_columns, const Mat_<double>& A){
     int row_num = matrix_columns[0].rows;
     Mat_<double> result(row_num, 1, 0.0);
     for(int i = 0;i < row_num; ++i){
@@ -95,21 +95,16 @@ Mat_<double> L1Regularization(const Mat_<double>& log_image,
 			count++;
         }
     }
-	*/
-	
-	vector<Mat_<double> > b_columns(cluster_num, Mat_<double>(b_row_num,1,0.0));
-	vector<Mat_<double> > a_columns(cluster_num, Mat_<double>(b_row_num,1.0,0));
-    int count = 0;
-    for(int i = 0;i < cluster_num;i++){
-        for(int j = i+1;j < cluster_num;j++){
-            b_columns[i](count,0) = alpha / 2.0;
-            b_columns[j](count,0) = - alpha / 2.0;
-            a_columns[i](count,0) = pairwise_weight(i,j) * gamma / 2.0
-            a_columns[j](count,0) = - pairwise_weight(i,j) * gamma / 2.0;
-            count++;
-        }
-    }
 
+	vector<Mat_<double> > a(2, Mat_<double>(1,2));
+	a[0](0,1) = 2;
+    cout<<a[0]<<endl;
+    cout<<a[1]<<endl;
+    */
+
+	vector<Mat_<double> > b_columns(cluster_num);
+	vector<Mat_<double> > a_columns(cluster_num);
+    
     // shading smooth part
     vector<Point2i> pixel_pairs_1;
     vector<Point2i> pixel_pairs_2;
@@ -127,11 +122,26 @@ Mat_<double> L1Regularization(const Mat_<double>& log_image,
     }
 
 	cout<<"pixel pair: "<<pixel_pairs_1.size()<<endl;
-
     int pair_num = pixel_pairs_1.size();    
-    // Mat_<double> D(pair_num,cluster_num,0.0);
     Mat_<double> C(pair_num,1,0.0);
-    vector<Mat_<double> > d_columns(cluster_num, Mat_<double>(pair_num,1,0.0));
+    vector<Mat_<double> > d_columns(cluster_num);
+
+    for(int i = 0; i < cluster_num; ++i){
+        a_columns[i] = Mat_<double>(b_row_num, 1, 0.0);
+        b_columns[i] = Mat_<double>(b_row_num, 1, 0.0);
+        d_columns[i] = Mat_<double>(pair_num, 1, 0.0);
+    }
+
+    int count = 0;
+    for(int i = 0;i < cluster_num;i++){
+        for(int j = i+1;j < cluster_num;j++){
+            b_columns[i](count,0) = alpha / 2.0;
+            b_columns[j](count,0) = - alpha / 2.0;
+            a_columns[i](count,0) = pairwise_weight(i,j) * gamma / 2.0;
+            a_columns[j](count,0) = - pairwise_weight(i,j) * gamma / 2.0;
+            count++;
+        }
+    }
 
     for(int i = 0;i < pair_num;i++){
         int x_1 = pixel_pairs_1[i].x;
@@ -140,8 +150,6 @@ Mat_<double> L1Regularization(const Mat_<double>& log_image,
         int y_2 = pixel_pairs_2[i].y;
         int label_1 = pixel_label(x_1,y_1);
         int label_2 = pixel_label(x_2,y_2);
-        // D(i,label_1) = - beta / 2;
-        // D(i,label_2) = beta / 2;
         d_columns[label_1](i) = -beta / 2.0;
         d_columns[label_2](i) = beta / 2.0;
         C(i,0) = beta / 2.0 * (log_image(x_1,y_1) - log_image(x_2,y_2)); 
@@ -209,7 +217,7 @@ Mat_<double> L1Regularization(const Mat_<double>& log_image,
             // temp_3 = D * curr_reflectance + C;
             temp_1 = MatrixMultiRows(a_columns, curr_reflectance);
             temp_2 = MatrixMultiRows(b_columns, curr_reflectance);
-            temp_3 = MatrixMultiRows(d_columns, curr_reflectance);
+            temp_3 = MatrixMultiRows(d_columns, curr_reflectance) + C;
 
             d_1 = Shrink(temp_1 + b_1, 1.0 / lambda);
             d_2 = Shrink(temp_2 + b_2, 1.0 / lambda); 
