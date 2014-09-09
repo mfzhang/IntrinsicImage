@@ -182,7 +182,13 @@ Mat_<double> L1Regularization(const Mat_<double>& log_image,
     Mat_<double> init = theta * (E.t() * E);
 	// Mat_<double> left_hand = lambda * (A.t() * A) + lambda * (B.t() * B) + lambda *  (D.t() * D) + init;
     Mat_<double> left_hand = lambda * ATA + lambda * BTB + lambda * DTD + init;
-    Mat_<double> init_2 = average_reflectance * theta * E.t();
+    
+	Mat_<double> diag = Mat::diag(left_hand);
+	cout<<sum(diag)[0]<<endl;
+	cout<<sum(left_hand)[0]<<endl;
+
+	
+	Mat_<double> init_2 = average_reflectance * theta * E.t();
 
 
     Mat_<double> curr_reflectance;
@@ -209,7 +215,7 @@ Mat_<double> L1Regularization(const Mat_<double>& log_image,
             Mat_<double> t_3 = MatrixMulti(d_columns, d_3 - b_3 - C);
             // Mat_<double> right_hand = lambda * A.t() * (d_1 - b_1) + lambda * B.t() * (d_2 - b_2) + average_reflectance * theta * E.t() + lambda * D.t() * (d_3 - b_3 - C); 
             Mat_<double> right_hand = lambda * (t_1 + t_2 + t_3) + average_reflectance * theta * E.t();
-			
+	           		
             solve(left_hand,right_hand,curr_reflectance);
 
             // temp_1 = A * curr_reflectance;

@@ -31,6 +31,7 @@ int main(){
     vector<ReflectanceCluster> clusters = GetReflectanceCluster(input, sigma, k, min_size, &num_css, segment_result, pixel_label);
     cout<<"Number of clusters: "<<num_css<<endl;
     imshow("Segment result", segment_result);
+	// imwrite("C:\\Users\\BiSai\\Desktop\\test.bmp", pixel_label);
 	waitKey(0);
     Mat_<double> r_reflectance = GetReflectance(clusters, original_image, pixel_label, 2);
     // Mat_<double> g_reflectance = GetReflectance(clusters, original_image, pixel_label, 1);
