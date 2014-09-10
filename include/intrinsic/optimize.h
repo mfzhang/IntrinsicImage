@@ -83,24 +83,6 @@ Mat_<double> L1Regularization(const Mat_<double>& log_image,
     Mat_<double> pairwise_weight = GetPairwiseWeight(clusters,original_image);
 
     cout<<"Solve reflectance..."<<endl;	
-	/*
-	Mat_<double> B(b_row_num, cluster_num); 
-    int count = 0;
-    for(int i = 0;i < cluster_num;i++){
-        for(int j = i+1;j < cluster_num;j++){
-            B(count,i) = alpha / 2;
-            B(count,j) = -alpha / 2; 
-			A(count,i) = pairwise_weight(i,j) * gamma;
-			A(count,j) = -pairwise_weight(i,j) * gamma;
-			count++;
-        }
-    }
-
-	vector<Mat_<double> > a(2, Mat_<double>(1,2));
-	a[0](0,1) = 2;
-    cout<<a[0]<<endl;
-    cout<<a[1]<<endl;
-    */
 
 	vector<Mat_<double> > b_columns(cluster_num);
 	vector<Mat_<double> > a_columns(cluster_num);
@@ -209,18 +191,13 @@ Mat_<double> L1Regularization(const Mat_<double>& log_image,
         Mat_<double> temp_3;
 
         for(int j = 0;j < 1; j++){
-            // Mat_<double> right_hand = lambda * A.t() * (d_1 - b_1) + lambda * B.t() * (d_2 - b_2) - beta * D.t() * C + average_reflectance * theta * E.t(); 
             Mat_<double> t_1 = MatrixMulti(a_columns, d_1 - b_1);
             Mat_<double> t_2 = MatrixMulti(b_columns, d_2 - b_2);
             Mat_<double> t_3 = MatrixMulti(d_columns, d_3 - b_3 - C);
-            // Mat_<double> right_hand = lambda * A.t() * (d_1 - b_1) + lambda * B.t() * (d_2 - b_2) + average_reflectance * theta * E.t() + lambda * D.t() * (d_3 - b_3 - C); 
             Mat_<double> right_hand = lambda * (t_1 + t_2 + t_3) + average_reflectance * theta * E.t();
 	           		
             solve(left_hand,right_hand,curr_reflectance);
 
-            // temp_1 = A * curr_reflectance;
-            // temp_2 = B * curr_reflectance;
-            // temp_3 = D * curr_reflectance + C;
             temp_1 = MatrixMultiRows(a_columns, curr_reflectance);
             temp_2 = MatrixMultiRows(b_columns, curr_reflectance);
             temp_3 = MatrixMultiRows(d_columns, curr_reflectance) + C;
@@ -258,7 +235,6 @@ Mat_<double> GetReflectance(vector<ReflectanceCluster>& clusters, const CVImage&
     Mat_<double> log_image(image_height,image_width,0.0);
     for(int i = 0;i < image_height;i++){
         for(int j = 0;j < image_width;j++){
-            // prevent log(0)
             log_image(i,j) = log(image(i,j)[channel] + 1); 
 			// log_image(i,j) = log((image(i,j)[0] + image(i,j)[1] + image(i,j)[2]) / 3); 
         }
@@ -269,7 +245,7 @@ Mat_<double> GetReflectance(vector<ReflectanceCluster>& clusters, const CVImage&
     double mu = 100;
     int iteration_num = 100;
     double lambda = 1;
-    double beta = 400;
+    double beta = 100;
     double theta = 1000000;	
     Mat_<double> reflectance;
     Mat_<double> intensity(num_css,1);

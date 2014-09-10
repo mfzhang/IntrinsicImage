@@ -41,4 +41,5 @@ for i = 1 :  cluster_num
 	cluster_feature(i,5) = cluster_feature(5) / (cluster_num * temp * theta_c);
 end
 
+dist = 
 
